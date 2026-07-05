@@ -8,6 +8,7 @@ export default function AgentNorms() {
       sender: 'ai',
       text: 'Здравствуйте. Я — ИИ-эксперт в сфере градостроительства (ПЗЗ, ГрК РФ, СНиП) Санкт-Петербурга и Ленинградской области.\nУкажите ваш вопрос, функциональное назначение объекта или территориальную зону.',
     }
+  ]);
   const [input, setInput] = useState('');
 
   const API_BASE = import.meta.env.VITE_API_URL || '';
