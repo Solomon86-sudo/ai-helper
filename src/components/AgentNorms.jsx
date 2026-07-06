@@ -11,8 +11,6 @@ export default function AgentNorms() {
   ]);
   const [input, setInput] = useState('');
 
-  const API_BASE = import.meta.env.VITE_API_URL || '';
-
   const handleSend = async () => {
     if (!input.trim()) return;
     
@@ -21,7 +19,7 @@ export default function AgentNorms() {
     setInput('');
     
     try {
-      const response = await fetch(`${API_BASE}/api/chat`, {
+      const response = await fetch('/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: input })

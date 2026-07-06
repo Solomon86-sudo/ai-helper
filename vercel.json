@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://ai-helper-e4qp.onrender.com/api/:path*"
+    }
+  ]
+}

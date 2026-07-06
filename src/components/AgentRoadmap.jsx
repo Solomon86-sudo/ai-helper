@@ -6,14 +6,12 @@ export default function AgentRoadmap() {
   const [roadmapData, setRoadmapData] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  const API_BASE = import.meta.env.VITE_API_URL || '';
-
   const handleSearch = async () => {
     if (!query.trim()) return;
     setLoading(true);
     setRoadmapData(null);
     try {
-      const res = await fetch(`${API_BASE}/api/roadmap?query=${encodeURIComponent(query)}`);
+      const res = await fetch(`/api/roadmap?query=${encodeURIComponent(query)}`);
       const data = await res.json();
       setRoadmapData(data);
     } catch (e) {
