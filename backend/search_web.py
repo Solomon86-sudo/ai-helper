@@ -20,6 +20,7 @@ TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
 async def get_web_context(query: str) -> str:
     """
     Ищет актуальную информацию через Tavily API по доверенным сайтам.
+    Использует несколько вариантов запроса для максимального охвата.
     Возвращает собранный текст для передачи в LLM.
     """
     if not TAVILY_API_KEY:
@@ -29,21 +30,39 @@ async def get_web_context(query: str) -> str:
     try:
         client = TavilyClient(api_key=TAVILY_API_KEY)
         
-        response = client.search(
-            query=f"{query} действующая редакция градостроительство СПб нормативы",
-            search_depth="advanced",
-            include_domains=TRUSTED_DOMAINS,
-            max_results=5,
-            include_raw_content=False
-        )
+        # Несколько вариантов запроса для лучшего охвата
+        search_queries = [
+            f"{query} действующая редакция",
+            f"{query} СП СНиП норматив требования",
+        ]
         
-        results = response.get("results", [])
-        if not results:
-            logging.info("Tavily: no results from trusted domains")
+        all_results = []
+        seen_urls = set()
+        
+        for sq in search_queries:
+            try:
+                response = client.search(
+                    query=sq,
+                    search_depth="advanced",
+                    include_domains=TRUSTED_DOMAINS,
+                    max_results=5,
+                    include_raw_content=False
+                )
+                for res in response.get("results", []):
+                    url = res.get("url", "")
+                    if url not in seen_urls:
+                        seen_urls.add(url)
+                        all_results.append(res)
+            except Exception as e:
+                logging.warning(f"Tavily sub-query error for '{sq}': {e}")
+                continue
+        
+        if not all_results:
+            logging.info("Tavily: no results from any query variant")
             return ""
 
         context_parts = []
-        for res in results:
+        for res in all_results:
             url = res.get("url", "")
             title = res.get("title", "")
             content = res.get("content", "")
@@ -77,8 +96,8 @@ async def get_web_context(query: str) -> str:
                 f"СОДЕРЖАНИЕ: {content}"
             )
             
-            # Ограничиваем до 3 валидных результатов
-            if len(context_parts) >= 3:
+            # Ограничиваем до 5 валидных результатов
+            if len(context_parts) >= 5:
                 break
 
         return "\n\n---\n\n".join(context_parts)
