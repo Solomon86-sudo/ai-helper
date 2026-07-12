@@ -48,6 +48,12 @@ async def get_web_context(query: str) -> str:
             title = res.get("title", "")
             content = res.get("content", "")
             
+            # Строгая проверка домена (иногда API игнорирует include_domains)
+            domain_matched = any(domain in url for domain in TRUSTED_DOMAINS)
+            if not domain_matched:
+                logging.warning(f"Tavily returned unapproved domain: {url}")
+                continue
+                
             # Проверка на недействующие документы (устаревшие СНиП, отмененные законы)
             combined_text = (title + " " + content).lower()
             if "недействующий" in combined_text or "утратил силу" in combined_text or "отменен" in combined_text:
