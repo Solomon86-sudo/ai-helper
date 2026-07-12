@@ -57,7 +57,12 @@ export default function AgentNorms() {
                 {msg.sender === 'ai' ? 'ИИ-Нормоконтроль' : 'Вы'}
               </span>
             </div>
-            <div dangerouslySetInnerHTML={{ __html: msg.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br/>') }} />
+            <div dangerouslySetInnerHTML={{ 
+              __html: msg.text
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer" style="color: #60A5FA; text-decoration: underline;">$1</a>')
+                .replace(/\n/g, '<br/>') 
+            }} />
             {msg.source && <div className="source-tag">{msg.source}</div>}
           </div>
         ))}
