@@ -4,5 +4,4 @@ pydantic
 python-multipart
 chromadb
 openai
-duckduckgo-search
-beautifulsoup4
+tavily-python
