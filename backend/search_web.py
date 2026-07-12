@@ -30,10 +30,10 @@ async def get_web_context(query: str) -> str:
         client = TavilyClient(api_key=TAVILY_API_KEY)
         
         response = client.search(
-            query=f"{query} градостроительство СПб нормативы",
+            query=f"{query} действующая редакция градостроительство СПб нормативы",
             search_depth="advanced",
             include_domains=TRUSTED_DOMAINS,
-            max_results=3,
+            max_results=5,
             include_raw_content=False
         )
         
@@ -48,11 +48,21 @@ async def get_web_context(query: str) -> str:
             title = res.get("title", "")
             content = res.get("content", "")
             
+            # Проверка на недействующие документы (устаревшие СНиП, отмененные законы)
+            combined_text = (title + " " + content).lower()
+            if "недействующий" in combined_text or "утратил силу" in combined_text or "отменен" in combined_text:
+                logging.info(f"Filtered out invalid document: {url}")
+                continue
+            
             context_parts.append(
                 f"ИСТОЧНИК: {url}\n"
                 f"ЗАГОЛОВОК: {title}\n"
                 f"СОДЕРЖАНИЕ: {content}"
             )
+            
+            # Ограничиваем до 3 валидных результатов
+            if len(context_parts) >= 3:
+                break
 
         return "\n\n---\n\n".join(context_parts)
 
