@@ -12,7 +12,8 @@ TRUSTED_DOMAINS = [
     "szap.gosnadzor.ru",
     "arch.lenobl.ru",
     "kgainfo.spb.ru",
-    "gsnspb.ru"
+    "gsnspb.ru",
+    "minstroyrf.gov.ru"
 ]
 
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
