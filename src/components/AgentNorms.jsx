@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, Bot, User } from 'lucide-react';
 
 export default function AgentNorms() {
@@ -10,6 +10,11 @@ export default function AgentNorms() {
     }
   ]);
   const [input, setInput] = useState('');
+
+  // Пинг для пробуждения бэкенда (т.к. Render засыпает через 15 минут)
+  useEffect(() => {
+    fetch('/api/chat', { method: 'OPTIONS' }).catch(() => {});
+  }, []);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -24,6 +29,10 @@ export default function AgentNorms() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: input })
       });
+      if (!response.ok) {
+        throw new Error('API Error');
+      }
+      
       const data = await response.json();
       setMessages((prev) => [
         ...prev,
@@ -40,7 +49,7 @@ export default function AgentNorms() {
         {
           id: Date.now() + 1,
           sender: 'ai',
-          text: 'Ошибка соединения с API.',
+          text: '⏳ Ошибка соединения. Если вы не пользовались сервисом более 15 минут, бесплатный сервер ушёл в "спящий режим". Он уже просыпается! **Подождите 30-40 секунд и отправьте ваш запрос ещё раз.**',
         }
       ]);
     }
