@@ -54,10 +54,21 @@ async def get_web_context(query: str) -> str:
                 logging.warning(f"Tavily returned unapproved domain: {url}")
                 continue
                 
-            # Проверка на недействующие документы (устаревшие СНиП, отмененные законы)
-            combined_text = (title + " " + content).lower()
-            if "недействующий" in combined_text or "утратил силу" in combined_text or "отменен" in combined_text:
-                logging.info(f"Filtered out invalid document: {url}")
+            # Проверка на недействующие документы и проекты/презентации
+            combined_text = (title + " " + content + " " + url).lower()
+            invalid_keywords = [
+                "недействующий", 
+                "утратил силу", 
+                "отменен",
+                "проектное предложение",
+                "проектное_предложение",
+                "презентация",
+                "проект закона",
+                "проект постановления",
+                "проект изменений"
+            ]
+            if any(kw in combined_text for kw in invalid_keywords):
+                logging.info(f"Filtered out invalid/draft document: {url}")
                 continue
             
             context_parts.append(
