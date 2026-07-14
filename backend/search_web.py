@@ -2,19 +2,35 @@ from tavily import TavilyClient
 import logging
 import os
 
-# Список доверенных доменов (пользовательский выбор)
-TRUSTED_DOMAINS = [
-    "docs.cntd.ru",
-    "npa.gov.spb.ru",
-    "base.garant.ru",
-    "www.gov.spb.ru",
-    "kgsn.lenobl.ru",
-    "szap.gosnadzor.ru",
-    "arch.lenobl.ru",
-    "kgainfo.spb.ru",
-    "gsnspb.ru",
-    "minstroyrf.gov.ru"
+# Список доверенных доменов
+# Группа 1: Правовые базы и НТД
+TRUSTED_DOMAINS_LEGAL = [
+    "docs.cntd.ru",         # Электронный фонд НТД (Техэксперт)
+    "base.garant.ru",       # Гарант — правовая база
+    "consultant.ru",        # КонсультантПлюс
+    "pravo.gov.ru",         # Официальный портал правовой информации РФ
 ]
+
+# Группа 2: Федеральные органы (стандарты, регламенты)
+TRUSTED_DOMAINS_FEDERAL = [
+    "minstroyrf.gov.ru",    # Минстрой России
+    "rst.gov.ru",           # Росстандарт (ГОСТ, стандарты)
+    "faufcc.ru",            # ФАУ ФЦС (реестр СП, нормирование)
+    "nostroy.ru",           # НОСТРОЙ (национальное объединение строителей)
+]
+
+# Группа 3: Региональные (СПб + ЛО)
+TRUSTED_DOMAINS_REGIONAL = [
+    "npa.gov.spb.ru",       # НПА Санкт-Петербурга
+    "www.gov.spb.ru",       # Правительство СПб
+    "kgainfo.spb.ru",       # КГА СПб
+    "gsnspb.ru",            # Госстройнадзор СПб
+    "kgsn.lenobl.ru",       # Госстройнадзор ЛО
+    "szap.gosnadzor.ru",    # Ростехнадзор СЗФО
+    "arch.lenobl.ru",       # Комитет архитектуры ЛО
+]
+
+TRUSTED_DOMAINS = TRUSTED_DOMAINS_LEGAL + TRUSTED_DOMAINS_FEDERAL + TRUSTED_DOMAINS_REGIONAL
 
 TAVILY_API_KEY = os.getenv("TAVILY_API_KEY", "")
 

@@ -127,9 +127,49 @@ async def chat_with_agent(req: ChatRequest):
                     {"role": "user", "content": req.message}
                 ],
                 temperature=0,
-                max_tokens=1024
+                max_tokens=1500
             )
             ai_text = response.choices[0].message.content
+
+            # --- ДВОЙНАЯ ПРОВЕРКА (верификация ответа) ---
+            try:
+                verify_prompt = f"""Ты — строгий верификатор нормативных ответов. Проверь ответ ниже по следующим критериям:
+
+1. ФАКТЧЕК: Есть ли в ответе утверждения, которые НЕ подтверждены контекстом ниже? Если да — укажи какие.
+2. ПОЛНОТА: Есть ли в контексте важная информация по теме вопроса, которая НЕ вошла в ответ? Если да — перечисли.  
+3. ССЫЛКИ: Все ли URL-ссылки в ответе реально присутствуют в контексте? Нет ли выдуманных ссылок?
+4. СТАТУС ДОКУМЕНТОВ: Правильно ли определён статус обязательности (🟢/🟡) для каждого документа?
+
+Вопрос пользователя: {req.message}
+
+ОТВЕТ ДЛЯ ПРОВЕРКИ:
+{ai_text}
+
+КОНТЕКСТ (источники):
+{rag_context}
+{web_context}
+
+ФОРМАТ ОТВЕТА — ТОЛЬКО если нашёл ошибки, выведи:
+⚠️ КОРРЕКТИРОВКА: [что именно неверно и как правильно]
+
+Если ошибок НЕТ — выведи ТОЛЬКО слово: VERIFIED"""
+
+                verify_response = await client.chat.completions.create(
+                    model=AI_MODEL,
+                    messages=[
+                        {"role": "system", "content": verify_prompt}
+                    ],
+                    temperature=0,
+                    max_tokens=500
+                )
+                verify_text = verify_response.choices[0].message.content.strip()
+                
+                if verify_text and "VERIFIED" not in verify_text.upper():
+                    ai_text += "\n\n" + verify_text
+                    
+            except Exception as ve:
+                logging.warning(f"Verification step error: {ve}")
+
             return {"reply": ai_text, "source": "Векторная база + ИИ"}
         except Exception as e:
             logging.error(f"AI Error: {e}")
