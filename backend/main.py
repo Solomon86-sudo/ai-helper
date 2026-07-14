@@ -127,7 +127,7 @@ async def chat_with_agent(req: ChatRequest):
                     {"role": "user", "content": req.message}
                 ],
                 temperature=0,
-                max_tokens=1500
+                max_tokens=3000
             )
             ai_text = response.choices[0].message.content
 

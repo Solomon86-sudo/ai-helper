@@ -47,10 +47,11 @@ async def get_web_context(query: str) -> str:
     try:
         client = TavilyClient(api_key=TAVILY_API_KEY)
         
-        # Несколько вариантов запроса для лучшего охвата
+        # Несколько вариантов запроса для максимального охвата
         search_queries = [
             f"{query} действующая редакция",
             f"{query} СП СНиП норматив требования",
+            f"{query} ПЗЗ РНГП Санкт-Петербург Ленинградская область",
         ]
         
         all_results = []
