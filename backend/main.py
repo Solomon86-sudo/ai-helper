@@ -265,9 +265,10 @@ async def get_roadmap(query: str):
 
 СТРОГИЕ ПРАВИЛА:
 1. НЕ ВЫДУМЫВАЙ ШАГИ. Опирайся ТОЛЬКО на предоставленный ниже контекст из нормативной базы и интернета.
-2. Если в контексте нет информации о шагах согласования — так и напиши в описании шага, что точный регламент не найден.
-3. Указывай точные сроки согласований (в днях/месяцах), только если они есть в документах.
-4. Обязательно указывай ссылки на НПА в описании, если они есть.
+2. ХРОНОЛОГИЯ: Шаги должны идти в строгом хронологическом порядке (например, Экспертиза проектной документации (ст. 49 ГрК РФ) ВСЕГДА идет ДО выдачи Разрешения на строительство (ст. 51 ГрК РФ)).
+3. Если в контексте нет информации о шагах согласования — так и напиши в описании шага, что точный регламент не найден.
+4. Указывай точные сроки согласований (в днях/месяцах), только если они есть в документах.
+5. Обязательно указывай ссылки на НПА и конкретные статьи в описании, если они есть.
 
 Сгенерируй ответ СТРОГО в формате JSON без какого-либо текста до или после:
 {{
@@ -290,9 +291,53 @@ async def get_roadmap(query: str):
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": query}
             ],
-            temperature=0.2
+            temperature=0.0,
+            max_tokens=3000
         )
         ai_text = response.choices[0].message.content
+
+        # --- ДВОЙНАЯ ПРОВЕРКА (Верификация дорожной карты) ---
+        try:
+            verify_prompt = f"""Ты строгий верификатор дорожных карт. Проверь этот JSON на ошибки:
+1. ХРОНОЛОГИЯ: Не нарушен ли логический порядок? (Например, экспертиза проекта должна быть ДО разрешения на строительство).
+2. ФАКТЧЕК: Нет ли шагов, противоречащих Градостроительному кодексу РФ или контексту?
+
+JSON для проверки:
+{ai_text}
+
+КОНТЕКСТ:
+{rag_context}
+{web_context}
+
+Если ошибок НЕТ — выведи ТОЛЬКО слово: VERIFIED
+Если есть ошибки — кратко перечисли их."""
+            
+            verify_response = await client.chat.completions.create(
+                model=AI_MODEL,
+                messages=[{"role": "system", "content": verify_prompt}],
+                temperature=0,
+                max_tokens=500
+            )
+            verify_text = verify_response.choices[0].message.content.strip()
+            
+            if verify_text and "VERIFIED" not in verify_text.upper():
+                logging.info(f"Roadmap verification failed: {verify_text}")
+                corrected_response = await client.chat.completions.create(
+                    model=AI_MODEL,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": query},
+                        {"role": "assistant", "content": ai_text},
+                        {"role": "user", "content": f"Внутренняя проверка выявила ошибки логики или хронологии:\n{verify_text}\n\nИсправь эти ошибки и выдай НОВЫЙ корректный JSON без текста до или после."}
+                    ],
+                    temperature=0.0,
+                    max_tokens=3000
+                )
+                ai_text = corrected_response.choices[0].message.content
+            else:
+                logging.info("Roadmap verification passed: VERIFIED")
+        except Exception as ve:
+            logging.warning(f"Roadmap verification step error: {ve}")
         
         # Очистка текста от возможных маркдаун-тегов ```json ... ```
         if "```json" in ai_text:
