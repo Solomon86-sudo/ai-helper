@@ -11,7 +11,7 @@ export default function AgentRoadmap() {
     setLoading(true);
     setRoadmapData(null);
     try {
-      const res = await fetch(`/api/roadmap?query=${encodeURIComponent(query)}`);
+      const res = await fetch(`https://ai-helper-e4qp.onrender.com/api/roadmap?query=${encodeURIComponent(query)}`);
       const data = await res.json();
       setRoadmapData(data);
     } catch (e) {

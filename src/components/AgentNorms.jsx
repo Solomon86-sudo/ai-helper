@@ -13,7 +13,7 @@ export default function AgentNorms() {
 
   // Пинг для пробуждения бэкенда (т.к. Render засыпает через 15 минут)
   useEffect(() => {
-    fetch('/api/chat', { method: 'OPTIONS' }).catch(() => {});
+    fetch('https://ai-helper-e4qp.onrender.com/api/chat', { method: 'OPTIONS' }).catch(() => {});
   }, []);
 
   const handleSend = async () => {
@@ -24,7 +24,7 @@ export default function AgentNorms() {
     setInput('');
     
     try {
-      const response = await fetch('/api/chat', {
+      const response = await fetch('https://ai-helper-e4qp.onrender.com/api/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: input })
