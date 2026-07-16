@@ -310,6 +310,8 @@ async def get_roadmap(query: str):
                 ai_text = ai_text.split("```")[1].split("```")[0].strip()
             
         data = json.loads(ai_text)
+        # Убираем внутреннее поле _thinking (оно только для самопроверки ИИ)
+        data.pop('_thinking', None)
         return data
     except Exception as e:
         logging.error(f"AI Error: {e}")

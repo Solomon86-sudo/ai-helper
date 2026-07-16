@@ -1,10 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Map, Calendar, FileCheck, Search, Loader } from 'lucide-react';
 
 export default function AgentRoadmap() {
   const [query, setQuery] = useState('');
   const [roadmapData, setRoadmapData] = useState(null);
   const [loading, setLoading] = useState(false);
+
+  // Пинг для пробуждения бэкенда (Render засыпает через 15 минут)
+  useEffect(() => {
+    fetch('https://ai-helper-e4qp.onrender.com/docs', { method: 'HEAD' }).catch(() => {});
+  }, []);
 
   const handleSearch = async () => {
     if (!query.trim()) return;
