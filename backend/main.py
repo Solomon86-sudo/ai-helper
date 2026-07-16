@@ -267,11 +267,12 @@ async def get_roadmap(query: str):
 1. ОТКАЗ ПРИ ОТСУТСТВИИ ДАННЫХ: Если в предоставленном ниже контексте нет реальной информации о запрашиваемой процедуре, верни JSON с одним шагом: {"title": "Информация не найдена", "desc": "В базе данных нет достоверных регламентов для этой процедуры.", "meta": ""}. 
 2. НИКАКИХ ГАЛЛЮЦИНАЦИЙ: ЗАПРЕЩЕНО выдумывать номера СП, ГОСТов, Постановлений и законов. Упоминай только те документы, которые ПРЯМО НАПИСАНЫ в контексте ниже.
 3. ХРОНОЛОГИЯ: Шаги должны идти в строгом логическом порядке (например: ТУ -> Проектирование -> Экспертиза -> Разрешение на строительство).
-4. Указывай точные сроки согласований (в днях/месяцах), только если они есть в документах.
-5. Обязательно указывай ссылки на НПА и конкретные статьи в описании, ТОЛЬКО если они есть в контексте.
+4. Указывай точные сроки согласований, только если они есть в документах.
+5. Обязательно указывай ссылки на НПА в описании, ТОЛЬКО если они есть в контексте.
 
-Сгенерируй ответ СТРОГО в формате JSON без какого-либо текста до или после:
+Сгенерируй ответ СТРОГО в формате JSON без какого-либо текста до или после. JSON обязан содержать поле "_thinking", где ты сначала анализируешь контекст, выстраиваешь хронологию и проверяешь, не выдумал ли ты нормативы:
 {{
+  "_thinking": "Кратко проанализируй контекст. Укажи, какие именно реальные документы из контекста ты берешь. Проверь логику шагов.",
   "title": "Точное название процедуры",
   "authority": "Главное ведомство (например, Госстройнадзор или КГА)",
   "steps": [
@@ -295,56 +296,18 @@ async def get_roadmap(query: str):
             max_tokens=3000
         )
         ai_text = response.choices[0].message.content
-
-        # --- ДВОЙНАЯ ПРОВЕРКА (Верификация дорожной карты) ---
-        try:
-            verify_prompt = f"""Ты строгий верификатор дорожных карт. Твоя задача — ловить галлюцинации нейросети. Проверь этот JSON:
-1. ВЫДУМАННЫЕ НОРМАТИВЫ: Проверь КАЖДОЕ упоминание СП, СНиП, ГОСТ, ФЗ или Постановления в JSON. Присутствует ли этот точный номер в КОНТЕКСТЕ? Если документа нет в контексте (например, выдуманный СП 555...) — это ГАЛЛЮЦИНАЦИЯ. Забракуй ответ.
-2. ХРОНОЛОГИЯ: Не нарушен ли логический порядок? (Например, ТУ получают ДО экспертизы, а экспертизу ДО разрешения на строительство).
-3. ФАКТЧЕК: Нет ли шагов, прямо противоречащих контексту?
-
-JSON для проверки:
-{ai_text}
-
-КОНТЕКСТ:
-{rag_context}
-{web_context}
-
-Если ошибок НЕТ — выведи ТОЛЬКО слово: VERIFIED
-Если есть ошибки — кратко перечисли их."""
-            
-            verify_response = await client.chat.completions.create(
-                model=AI_MODEL,
-                messages=[{"role": "system", "content": verify_prompt}],
-                temperature=0,
-                max_tokens=500
-            )
-            verify_text = verify_response.choices[0].message.content.strip()
-            
-            if verify_text and "VERIFIED" not in verify_text.upper():
-                logging.info(f"Roadmap verification failed: {verify_text}")
-                corrected_response = await client.chat.completions.create(
-                    model=AI_MODEL,
-                    messages=[
-                        {"role": "system", "content": system_prompt},
-                        {"role": "user", "content": query},
-                        {"role": "assistant", "content": ai_text},
-                        {"role": "user", "content": f"Внутренняя проверка выявила ошибки логики или хронологии:\n{verify_text}\n\nИсправь эти ошибки и выдай НОВЫЙ корректный JSON без текста до или после."}
-                    ],
-                    temperature=0.0,
-                    max_tokens=3000
-                )
-                ai_text = corrected_response.choices[0].message.content
-            else:
-                logging.info("Roadmap verification passed: VERIFIED")
-        except Exception as ve:
-            logging.warning(f"Roadmap verification step error: {ve}")
         
-        # Очистка текста от возможных маркдаун-тегов ```json ... ```
-        if "```json" in ai_text:
-            ai_text = ai_text.split("```json")[1].split("```")[0].strip()
-        elif "```" in ai_text:
-            ai_text = ai_text.split("```")[1].split("```")[0].strip()
+        # Улучшенное извлечение JSON из любого текста
+        import re
+        json_match = re.search(r'\{.*\}', ai_text, re.DOTALL)
+        if json_match:
+            ai_text = json_match.group(0)
+        else:
+            # Fallback
+            if "```json" in ai_text:
+                ai_text = ai_text.split("```json")[1].split("```")[0].strip()
+            elif "```" in ai_text:
+                ai_text = ai_text.split("```")[1].split("```")[0].strip()
             
         data = json.loads(ai_text)
         return data
