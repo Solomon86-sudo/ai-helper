@@ -79,6 +79,35 @@ export default function AgentRoadmap() {
                   <div className="timeline-meta">
                     {step.meta && <span><Calendar size={14} style={{ marginRight: '4px', verticalAlign: 'middle' }}/> {step.meta}</span>}
                   </div>
+                  {step.sources && step.sources.length > 0 && (
+                    <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                      {step.sources.map((src, si) => (
+                        <a 
+                          key={si} 
+                          href={src} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '12px',
+                            color: 'var(--accent-blue)',
+                            background: 'rgba(59,130,246,0.1)',
+                            padding: '3px 8px',
+                            borderRadius: '6px',
+                            textDecoration: 'none',
+                            border: '1px solid rgba(59,130,246,0.2)',
+                            transition: 'all 0.2s'
+                          }}
+                          onMouseOver={(e) => e.target.style.background = 'rgba(59,130,246,0.2)'}
+                          onMouseOut={(e) => e.target.style.background = 'rgba(59,130,246,0.1)'}
+                        >
+                          🔗 {new URL(src).hostname.replace('www.', '')}
+                        </a>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             )) : (
