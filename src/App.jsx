@@ -3,7 +3,8 @@ import AgentNorms from './components/AgentNorms';
 import AgentAudit from './components/AgentAudit';
 import AgentRoadmap from './components/AgentRoadmap';
 import AgentManual from './components/AgentManual';
-import { BookOpen, FileCheck, Map, Building2, Wrench } from 'lucide-react';
+import ERPDashboard from './components/erp/ERPDashboard';
+import { BookOpen, FileCheck, Map, Building2, Wrench, Briefcase } from 'lucide-react';
 
 function App() {
   const [activeTab, setActiveTab] = useState('norms');
@@ -18,6 +19,8 @@ function App() {
         return <AgentRoadmap />;
       case 'manual':
         return <AgentManual />;
+      case 'erp':
+        return <ERPDashboard />;
       default:
         return <AgentNorms />;
     }
@@ -33,6 +36,8 @@ function App() {
         return { title: 'Дорожные карты', desc: 'Навигатор по согласованиям и процедурам (КГА, КГИОП, Госстройнадзор)' };
       case 'manual':
         return { title: 'Инструкция по эксплуатации', desc: 'Генерация ИЭЗ на основе загруженной документации и паспортов' };
+      case 'erp':
+        return { title: 'Управление проектом (ERP)', desc: 'Единая система управления девелоперским циклом: от предпроекта до сдачи' };
       default:
         return { title: '', desc: '' };
     }
@@ -77,6 +82,17 @@ function App() {
           >
             <Wrench size={20} />
             Эксплуатация здания
+          </button>
+          
+          <div style={{ margin: '10px 0', borderTop: '1px solid var(--border-color)', opacity: 0.5 }}></div>
+
+          <button 
+            className={`nav-item ${activeTab === 'erp' ? 'active' : ''}`}
+            onClick={() => setActiveTab('erp')}
+            style={{ backgroundColor: activeTab === 'erp' ? 'var(--primary-color)' : 'rgba(16, 163, 127, 0.1)', color: activeTab === 'erp' ? 'white' : 'var(--primary-color)' }}
+          >
+            <Briefcase size={20} />
+            ERP-система
           </button>
         </nav>
 

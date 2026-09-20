@@ -41,6 +41,15 @@ except Exception as e:
     logging.error(f"Error initializing OpenAI client: {e}")
     client = None
 
+# --- Добавление ERP Роутеров ---
+from routers import predev, design, commerce, construction, budget, schedule
+
+app.include_router(predev.router)
+app.include_router(design.router)
+app.include_router(commerce.router)
+app.include_router(construction.router)
+app.include_router(budget.router)
+app.include_router(schedule.router)
 class ChatRequest(BaseModel):
     message: str
     context: Optional[str] = None

@@ -1,7 +1,10 @@
 fastapi
 uvicorn
 pydantic
+pydantic-settings
 python-multipart
 chromadb
 openai
 tavily-python
+sqlalchemy
+alembic
