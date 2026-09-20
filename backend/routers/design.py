@@ -1,7 +1,7 @@
 """
 Роутер модуля Проектирование.
 """
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from decimal import Decimal
 
@@ -14,6 +14,7 @@ from schemas.design import (
     ReviewCommentCreate, ReviewCommentResponse
 )
 from config import settings
+from services.gdrive import upload_file_to_gdrive
 
 router = APIRouter(prefix="/api/erp/design", tags=["Design"])
 
@@ -57,3 +58,28 @@ def check_gla(project_id: int, current_gla: Decimal, db: Session = Depends(get_d
         "limit_gla": tep.gla_approved,
         "delta": tep.gla_approved - current_gla
     }
+
+@router.post("/upload_rd")
+async def upload_rd_document(file: UploadFile = File(...)):
+    """
+    Загрузка чертежа (PDF и др.) напрямую в Google Drive.
+    Возвращает публичную ссылку на загруженный файл.
+    """
+    # Читаем файл в память
+    file_bytes = await file.read()
+    
+    from io import BytesIO
+    file_obj = BytesIO(file_bytes)
+    
+    # Отправляем в Google Drive
+    link = upload_file_to_gdrive(file_obj, file.filename, file.content_type)
+    
+    if not link:
+        raise HTTPException(status_code=500, detail="Ошибка при загрузке файла в Google Drive (проверьте credentials.json)")
+        
+    return {
+        "status": "success",
+        "filename": file.filename,
+        "drive_link": link
+    }
+
