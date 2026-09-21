@@ -125,6 +125,40 @@ const DesignModule = () => {
     }));
   };
 
+  const runAICheck = (e, sheetId) => {
+    e.preventDefault();
+    const targetSheet = rdSheets.find(s => s.id === sheetId);
+    
+    // Simulate AI loading state
+    setRdSheets(prev => prev.map(s => 
+      s.id === sheetId ? { ...s, comments: [...s.comments, { text: '🔄 ИИ анализирует нормативку и геометрию...', author: 'AI-Аудитор', resolved: false, isTemp: true }] } : s
+    ));
+
+    setTimeout(() => {
+      setRdSheets(prev => prev.map(s => {
+        if (s.id === sheetId) {
+          const filteredComments = s.comments.filter(c => !c.isTemp);
+          const aiRemarks = [];
+          
+          if (targetSheet.pdfLink && targetSheet.dwgLink) {
+            aiRemarks.push({ text: 'КРИТИЧНО: Расхождение форматов. В исходнике DWG скрыт слой "Вентканалы", который отображен на PDF-скане. Подрядчик может ошибиться.', author: 'AI-Аудитор', resolved: false });
+          }
+          
+          if (targetSheet.section === 'GP') {
+            aiRemarks.push({ text: 'Нарушение СП 42.13330.2016: Радиус разворота пожарной техники на плане 12м, норматив требует минимум 15м.', author: 'AI-Аудитор', resolved: false });
+          } else if (targetSheet.section === 'AR') {
+            aiRemarks.push({ text: 'Отклонение от Стадии П: Отметка парапета изменена с +14.500 на +15.200 без внесения изменений в пояснительную записку.', author: 'AI-Аудитор', resolved: false });
+          }
+          
+          aiRemarks.push({ text: 'Нарушение ГОСТ Р 21.101-2020: Наименование чертежа в угловом штампе не совпадает с ведомостью листов (Форма 1).', author: 'AI-Аудитор', resolved: false });
+
+          return { ...s, comments: [...filteredComments, ...aiRemarks] };
+        }
+        return s;
+      }));
+    }, 2500);
+  };
+
   const renderRoleToggle = () => (
     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'var(--bg-color)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', alignSelf: 'flex-start' }}>
       <Users size={18} color="var(--text-muted)" />
@@ -298,9 +332,14 @@ const DesignModule = () => {
                       <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Нет замечаний</span>
                     )}
                     {role === 'client' && (sheet.pdfLink || sheet.dwgLink) && (
-                      <button onClick={(e) => addComment(e, sheet.id)} style={{ marginTop: '8px', padding: '4px 8px', fontSize: '11px', display: 'flex', gap: '4px', alignItems: 'center', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}>
-                        <MessageSquare size={12}/> Замечание
-                      </button>
+                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '8px' }}>
+                        <button onClick={(e) => addComment(e, sheet.id)} style={{ padding: '4px 8px', fontSize: '11px', display: 'flex', gap: '4px', alignItems: 'center', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-color)' }}>
+                          <MessageSquare size={12}/> Замечание
+                        </button>
+                        <button onClick={(e) => runAICheck(e, sheet.id)} style={{ padding: '4px 8px', fontSize: '11px', display: 'flex', gap: '4px', alignItems: 'center', backgroundColor: '#8e44ad', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                          <ShieldAlert size={12}/> AI-Аудит
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
