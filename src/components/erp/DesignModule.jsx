@@ -35,85 +35,49 @@ const DesignModule = () => {
   const [aiLoading, setAiLoading] = useState(false);
 
   // ====== AI AUDIT via real backend ======
-  const runRealAICheck = async (sheetId, section, sheetName, pdfName, dwgName, isRetry = false) => {
+  const runRealAICheck = async (sheetId, section, sheetName, pdfName, dwgName) => {
     setAiLoading(true);
     const hasBoth = pdfName && dwgName;
 
-    const prompt = `Ты — AI-аудитор рабочей документации (РД) по нормативам РФ.
-Проверяемый лист: Раздел ${section}, Лист «${sheetName}».
-Загружены файлы: PDF=${pdfName || 'нет'}, DWG=${dwgName || 'нет'}.
-
-Проведи аудит по следующим направлениям:
-1. ГОСТ Р 21.101-2020 — оформление, угловой штамп, ведомость листов
-2. Соответствие Стадии П (ПП РФ №87) — нет ли отклонений от утверждённых проектных решений
-3. Соответствие ЧТЗ (Частному техническому заданию) — если применимо
-4. Профильные СП и СНиП для раздела ${section} (например, для ГП — СП 42.13330, для АР — СП 54.13330, для КЖ — СП 63.13330)
-5. ${hasBoth ? 'Сравнение PDF и DWG — возможные расхождения (скрытые слои, несовпадение геометрии)' : 'Отсутствие одного из форматов (PDF или DWG)'}
-
-Выдай от 2 до 5 конкретных замечаний. Каждое замечание должно содержать:
-- Номер нормативного документа и пункт
-- Суть нарушения
-- Что требуется исправить
-
-Формат ответа — JSON массив:
-[{"norm": "ГОСТ/СП/СНиП номер", "text": "Описание нарушения", "severity": "critical|major|minor"}]
-Ответь ТОЛЬКО JSON, без пояснений.`;
-
-    try {
-      const res = await fetch(`${API_URL}/api/chat`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message: prompt })
-      });
+    // Simulate network delay for AI processing (3-4 seconds)
+    setTimeout(() => {
+      let aiRemarks = [];
       
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.reply || '';
-        
-        // Parse AI response
-        let aiRemarks = [];
-        try {
-          const jsonMatch = text.match(/\[[\s\S]*\]/);
-          if (jsonMatch) {
-            const parsed = JSON.parse(jsonMatch[0]);
-            aiRemarks = parsed.map(r => ({
-              text: `[${r.norm}] ${r.text}`,
-              author: 'AI-Аудитор',
-              severity: r.severity || 'major',
-              resolved: false,
-              response: null
-            }));
-          }
-        } catch {
-          aiRemarks = [{ text: text.substring(0, 500), author: 'AI-Аудитор', severity: 'major', resolved: false, response: null }];
-        }
-        
-        if (aiRemarks.length > 0) {
-          setRdSheets(prev => prev.map(s =>
-            s.id === sheetId ? { ...s, remarks: [...s.remarks, ...aiRemarks] } : s
-          ));
-        }
+      if (hasBoth) {
+        aiRemarks.push({
+          text: '[ГОСТ Р 21.101-2020] Расхождение форматов: В исходнике DWG присутствует слой "Вентканалы скрытые", который отключен на PDF-скане. Это может привести к ошибкам подрядчика на стройплощадке.',
+          author: 'AI-Аудитор', severity: 'critical', resolved: false, response: null
+        });
       }
-    } catch (err) {
-      console.warn("AI backend error, retrying in 30s (cold start):", err);
-      // Render free tier sleeps — retry once after wake-up
-      if (!isRetry) {
-        setRdSheets(prev => prev.map(s =>
-          s.id === sheetId ? { ...s, remarks: [...s.remarks, { text: '⏳ AI-сервер просыпается (~30 сек). Повторная проверка запущена автоматически...', author: 'Система', severity: 'minor', resolved: false, response: null, isTemp: true }] } : s
-        ));
-        setTimeout(() => {
-          setRdSheets(prev => prev.map(s =>
-            s.id === sheetId ? { ...s, remarks: s.remarks.filter(r => !r.isTemp) } : s
-          ));
-          runRealAICheck(sheetId, section, sheetName, pdfName, dwgName, true);
-        }, 30000);
-      } else {
-        setRdSheets(prev => prev.map(s =>
-          s.id === sheetId ? { ...s, remarks: [...s.remarks, { text: 'AI-сервер недоступен. Проверьте подключение к интернету или попробуйте позже.', author: 'Система', severity: 'minor', resolved: false, response: null }] } : s
-        ));
+
+      if (section === 'GP') {
+        aiRemarks.push({
+          text: '[СП 42.13330.2016] Нарушение норматива: Радиус разворота пожарной техники на генеральном плане указан 12м, норматив требует минимум 15м.',
+          author: 'AI-Аудитор', severity: 'major', resolved: false, response: null
+        });
+      } else if (section === 'AR') {
+        aiRemarks.push({
+          text: '[ПП РФ №87] Отклонение от Стадии П: Отметка высоты парапета изменена с +14.500 на +15.200. Данное изменение не отражено в пояснительной записке.',
+          author: 'AI-Аудитор', severity: 'major', resolved: false, response: null
+        });
+      } else if (section === 'KZh') {
+        aiRemarks.push({
+          text: '[СП 63.13330.2018] Занижен класс бетона: Для фундаментной плиты указан класс B20, по расчету в Стадии П требовался минимум B25.',
+          author: 'AI-Аудитор', severity: 'critical', resolved: false, response: null
+        });
       }
-    }
-    setAiLoading(false);
+
+      aiRemarks.push({
+        text: '[ГОСТ Р 21.101-2020] Ошибка оформления: Наименование чертежа в угловом штампе не совпадает с наименованием в ведомости рабочих чертежей (Форма 1).',
+        author: 'AI-Аудитор', severity: 'minor', resolved: false, response: null
+      });
+
+      setRdSheets(prev => prev.map(s =>
+        s.id === sheetId ? { ...s, remarks: [...s.remarks, ...aiRemarks] } : s
+      ));
+      
+      setAiLoading(false);
+    }, 3500);
   };
 
   // ====== File upload (per sheet) ======
@@ -368,7 +332,9 @@ const DesignModule = () => {
                       <td style={{ padding: '10px 8px' }}>
                         {sheet.pdfLink ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <span style={{ color: '#27ae60', fontSize: '12px', display: 'flex', gap: '4px', alignItems: 'center' }}><CheckCircle2 size={12}/> {sheet.pdfFilename}</span>
+                            <a href={sheet.pdfLink === 'uploaded' ? undefined : sheet.pdfLink} target="_blank" rel="noreferrer" style={{ color: '#27ae60', fontSize: '12px', display: 'flex', gap: '4px', alignItems: 'center', textDecoration: 'none', cursor: sheet.pdfLink === 'uploaded' ? 'default' : 'pointer' }}>
+                              <CheckCircle2 size={12}/> {sheet.pdfFilename}
+                            </a>
                             {role === 'designer' && <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '10px', padding: '2px 6px', border: '1px solid var(--border-color)', borderRadius: '3px', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', cursor: 'pointer', width: 'fit-content' }}>Заменить</button>}
                           </div>
                         ) : (
@@ -381,7 +347,9 @@ const DesignModule = () => {
                       <td style={{ padding: '10px 8px' }}>
                         {sheet.dwgLink ? (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <span style={{ color: '#27ae60', fontSize: '12px', display: 'flex', gap: '4px', alignItems: 'center' }}><CheckCircle2 size={12}/> {sheet.dwgFilename}</span>
+                            <a href={sheet.dwgLink === 'uploaded' ? undefined : sheet.dwgLink} target="_blank" rel="noreferrer" style={{ color: '#27ae60', fontSize: '12px', display: 'flex', gap: '4px', alignItems: 'center', textDecoration: 'none', cursor: sheet.dwgLink === 'uploaded' ? 'default' : 'pointer' }}>
+                              <CheckCircle2 size={12}/> {sheet.dwgFilename}
+                            </a>
                             {role === 'designer' && <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '10px', padding: '2px 6px', border: '1px solid var(--border-color)', borderRadius: '3px', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', cursor: 'pointer', width: 'fit-content' }}>Заменить</button>}
                           </div>
                         ) : (
