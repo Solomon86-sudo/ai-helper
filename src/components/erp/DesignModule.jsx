@@ -138,6 +138,8 @@ const DesignModule = () => {
     transition: 'all 0.2s'
   });
 
+  const [compositionFile, setCompositionFile] = useState(null);
+
   // ========== SUB-TAB 3: Рабочая документация ==========
   const renderRD = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -151,11 +153,21 @@ const DesignModule = () => {
         accept="application/pdf,image/*,.dwg,.dxf" 
       />
 
-      <div style={{ padding: '16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', gap: '20px' }}>
-        <div style={{ flex: 1 }}>
+      <div style={{ padding: '16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', gap: '20px', alignItems: 'center', justifyContent: 'space-between' }}>
+        <div>
           <h5 style={{ margin: '0 0 8px 0' }}>Состав проекта</h5>
-          <span style={{ fontSize: '13px', color: 'var(--primary-color)' }}>Утвержден Заказчиком</span>
+          <span style={{ fontSize: '13px', color: 'var(--primary-color)' }}>
+            {compositionFile ? `Загружен: ${compositionFile}` : 'Ожидает загрузки состава (PDF/Word)'}
+          </span>
         </div>
+        {role === 'designer' && (
+          <button onClick={() => {
+            const fileName = prompt("Имитация загрузки состава проекта. Введите имя файла (например: Состав_РД_v1.pdf):", "Состав_РД_v1.pdf");
+            if (fileName) setCompositionFile(fileName);
+          }} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <Upload size={16}/> Загрузить шифры (PDF/Word)
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
@@ -224,7 +236,7 @@ const DesignModule = () => {
                           <CheckCircle2 size={14} color="#27ae60"/> {sheet.pdfFilename}
                         </a>
                         {role === 'designer' && (
-                          <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '10px', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'transparent', cursor: 'pointer', width: 'fit-content' }}>Заменить PDF</button>
+                          <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '10px', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', cursor: 'pointer', width: 'fit-content' }}>Заменить PDF</button>
                         )}
                       </div>
                     ) : (
@@ -245,7 +257,7 @@ const DesignModule = () => {
                           <CheckCircle2 size={14} color="#27ae60"/> {sheet.dwgFilename}
                         </a>
                         {role === 'designer' && (
-                          <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '10px', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'transparent', cursor: 'pointer', width: 'fit-content' }}>Заменить DWG</button>
+                          <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '10px', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', cursor: 'pointer', width: 'fit-content' }}>Заменить DWG</button>
                         )}
                       </div>
                     ) : (
