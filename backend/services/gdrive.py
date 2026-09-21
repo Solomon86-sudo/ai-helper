@@ -4,9 +4,14 @@ from googleapiclient.discovery import build
 from googleapiclient.http import MediaIoBaseUpload
 import io
 
-# Путь к файлу ключей сервисного аккаунта Google (нужно будет положить в эту папку)
+# Путь к файлу ключей сервисного аккаунта Google
 SCOPES = ['https://www.googleapis.com/auth/drive.file']
-SERVICE_ACCOUNT_FILE = os.path.join(os.path.dirname(__file__), 'credentials.json')
+
+# На сервере Render файлы секретов лежат в /etc/secrets/
+RENDER_SECRET_PATH = '/etc/secrets/credentials.json'
+LOCAL_SECRET_PATH = os.path.join(os.path.dirname(__file__), 'credentials.json')
+
+SERVICE_ACCOUNT_FILE = RENDER_SECRET_PATH if os.path.exists(RENDER_SECRET_PATH) else LOCAL_SECRET_PATH
 
 # ID папки в Google Drive, куда будут сохраняться файлы (настраивается в .env или config)
 # Если None - сохраняется в корень
