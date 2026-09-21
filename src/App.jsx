@@ -61,14 +61,6 @@ function App() {
           </button>
           
           <button 
-            className={`nav-item ${activeTab === 'audit' ? 'active' : ''}`}
-            onClick={() => setActiveTab('audit')}
-          >
-            <FileCheck size={20} />
-            Проверить документацию
-          </button>
-          
-          <button 
             className={`nav-item ${activeTab === 'roadmap' ? 'active' : ''}`}
             onClick={() => setActiveTab('roadmap')}
           >

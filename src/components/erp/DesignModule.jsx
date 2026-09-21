@@ -34,50 +34,87 @@ const DesignModule = () => {
   const [compositionFile, setCompositionFile] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
 
-  // ====== AI AUDIT via real backend ======
-  const runRealAICheck = async (sheetId, section, sheetName, pdfName, dwgName) => {
+  const runRealAICheck = async (sheetId, section, sheetName, pdfName, dwgName, extractedText = "", isRetry = false) => {
     setAiLoading(true);
     const hasBoth = pdfName && dwgName;
 
-    // Simulate network delay for AI processing (3-4 seconds)
-    setTimeout(() => {
-      let aiRemarks = [];
-      
-      if (hasBoth) {
-        aiRemarks.push({
-          text: '[ГОСТ Р 21.101-2020] Расхождение форматов: В исходнике DWG присутствует слой "Вентканалы скрытые", который отключен на PDF-скане. Это может привести к ошибкам подрядчика на стройплощадке.',
-          author: 'AI-Аудитор', severity: 'critical', resolved: false, response: null
-        });
-      }
+    const prompt = `Ты — AI-аудитор рабочей документации (РД) по нормативам РФ.
+Проверяемый лист: Раздел ${section}, Лист «${sheetName}».
+Загружены файлы: PDF=${pdfName || 'нет'}, DWG=${dwgName || 'нет'}.
 
-      if (section === 'GP') {
-        aiRemarks.push({
-          text: '[СП 42.13330.2016] Нарушение норматива: Радиус разворота пожарной техники на генеральном плане указан 12м, норматив требует минимум 15м.',
-          author: 'AI-Аудитор', severity: 'major', resolved: false, response: null
-        });
-      } else if (section === 'AR') {
-        aiRemarks.push({
-          text: '[ПП РФ №87] Отклонение от Стадии П: Отметка высоты парапета изменена с +14.500 на +15.200. Данное изменение не отражено в пояснительной записке.',
-          author: 'AI-Аудитор', severity: 'major', resolved: false, response: null
-        });
-      } else if (section === 'KZh') {
-        aiRemarks.push({
-          text: '[СП 63.13330.2018] Занижен класс бетона: Для фундаментной плиты указан класс B20, по расчету в Стадии П требовался минимум B25.',
-          author: 'AI-Аудитор', severity: 'critical', resolved: false, response: null
-        });
-      }
+Извлеченный текст из PDF (если есть):
+"""
+${extractedText}
+"""
 
-      aiRemarks.push({
-        text: '[ГОСТ Р 21.101-2020] Ошибка оформления: Наименование чертежа в угловом штампе не совпадает с наименованием в ведомости рабочих чертежей (Форма 1).',
-        author: 'AI-Аудитор', severity: 'minor', resolved: false, response: null
+Проведи аудит по следующим направлениям:
+1. ГОСТ Р 21.101-2020 — оформление, угловой штамп (ищи соответствие наименования листа в извлеченном тексте).
+2. Соответствие Стадии П (ПП РФ №87).
+3. Профильные СП для раздела ${section}.
+4. ${hasBoth ? 'Сравнение форматов (укажи, что при наличии DWG важно проверять слои)' : 'Отсутствие одного из форматов (PDF или DWG)'}.
+
+Выдай от 2 до 5 конкретных замечаний, опираясь на извлеченный текст, если он есть. Каждое замечание должно содержать:
+- Номер нормативного документа и пункт
+- Суть нарушения
+- Что требуется исправить
+
+Формат ответа — JSON массив:
+[{"norm": "ГОСТ/СП/СНиП номер", "text": "Описание нарушения", "severity": "critical|major|minor"}]
+Ответь ТОЛЬКО JSON, без пояснений.`;
+
+    try {
+      const res = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: prompt })
       });
-
-      setRdSheets(prev => prev.map(s =>
-        s.id === sheetId ? { ...s, remarks: [...s.remarks, ...aiRemarks] } : s
-      ));
       
-      setAiLoading(false);
-    }, 3500);
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.reply || '';
+        
+        let aiRemarks = [];
+        try {
+          const jsonMatch = text.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            aiRemarks = parsed.map(r => ({
+              text: `[${r.norm}] ${r.text}`,
+              author: 'AI-Аудитор',
+              severity: r.severity || 'major',
+              resolved: false,
+              response: null
+            }));
+          }
+        } catch {
+          aiRemarks = [{ text: text.substring(0, 500), author: 'AI-Аудитор', severity: 'major', resolved: false, response: null }];
+        }
+        
+        if (aiRemarks.length > 0) {
+          setRdSheets(prev => prev.map(s =>
+            s.id === sheetId ? { ...s, remarks: [...s.remarks, ...aiRemarks] } : s
+          ));
+        }
+      }
+    } catch (err) {
+      console.warn("AI backend error, retrying in 30s (cold start):", err);
+      if (!isRetry) {
+        setRdSheets(prev => prev.map(s =>
+          s.id === sheetId ? { ...s, remarks: [...s.remarks, { text: '⏳ AI-сервер просыпается (~30 сек). Повторная проверка запущена...', author: 'Система', severity: 'minor', resolved: false, response: null, isTemp: true }] } : s
+        ));
+        setTimeout(() => {
+          setRdSheets(prev => prev.map(s =>
+            s.id === sheetId ? { ...s, remarks: s.remarks.filter(r => !r.isTemp) } : s
+          ));
+          runRealAICheck(sheetId, section, sheetName, pdfName, dwgName, extractedText, true);
+        }, 30000);
+      } else {
+        setRdSheets(prev => prev.map(s =>
+          s.id === sheetId ? { ...s, remarks: [...s.remarks, { text: 'AI-сервер недоступен. Проверьте Render.', author: 'Система', severity: 'minor', resolved: false, response: null }] } : s
+        ));
+      }
+    }
+    setAiLoading(false);
   };
 
   // ====== File upload (per sheet) ======
@@ -101,10 +138,15 @@ const DesignModule = () => {
     const formData = new FormData();
     formData.append('file', file);
     let link = null;
+    let extractedText = "";
 
     try {
       const res = await fetch(`${API_URL}/api/erp/design/upload_rd`, { method: 'POST', body: formData });
-      if (res.ok) { link = (await res.json()).drive_link; }
+      if (res.ok) { 
+        const json = await res.json();
+        link = json.drive_link; 
+        extractedText = json.extracted_text || "";
+      }
       else throw new Error();
     } catch { link = URL.createObjectURL(file); }
 
@@ -126,7 +168,7 @@ const DesignModule = () => {
     const sheet = rdSheets.find(s => s.id === sheetId);
     const newPdf = type === 'pdf' ? file.name : sheet.pdfFilename;
     const newDwg = type === 'dwg' ? file.name : sheet.dwgFilename;
-    runRealAICheck(sheetId, sheet.section, sheet.name, newPdf, newDwg);
+    runRealAICheck(sheetId, sheet.section, sheet.name, newPdf, newDwg, extractedText);
 
     setUploadTarget({ sheetId: null, type: null });
     e.target.value = null;

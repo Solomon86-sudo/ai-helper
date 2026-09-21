@@ -63,7 +63,7 @@ def check_gla(project_id: int, current_gla: Decimal, db: Session = Depends(get_d
 async def upload_rd_document(file: UploadFile = File(...)):
     """
     Загрузка чертежа (PDF и др.) напрямую в Google Drive.
-    Возвращает публичную ссылку на загруженный файл.
+    Возвращает публичную ссылку на загруженный файл и извлеченный текст для ИИ.
     """
     # Читаем файл в память
     file_bytes = await file.read()
@@ -71,6 +71,19 @@ async def upload_rd_document(file: UploadFile = File(...)):
     from io import BytesIO
     file_obj = BytesIO(file_bytes)
     
+    extracted_text = ""
+    # Извлечение текста (OCR) если это PDF
+    if file.filename.lower().endswith(".pdf"):
+        try:
+            import fitz  # PyMuPDF
+            file_obj.seek(0)
+            doc = fitz.open(stream=file_obj.read(), filetype="pdf")
+            for page in doc[:3]: # Читаем первые 3 страницы (обычно штампы там)
+                extracted_text += page.get_text("text") + "\n"
+        except Exception as e:
+            print("Ошибка PyMuPDF:", e)
+
+    file_obj.seek(0)
     # Отправляем в Google Drive
     link = upload_file_to_gdrive(file_obj, file.filename, file.content_type)
     
@@ -80,6 +93,7 @@ async def upload_rd_document(file: UploadFile = File(...)):
     return {
         "status": "success",
         "filename": file.filename,
-        "drive_link": link
+        "drive_link": link,
+        "extracted_text": extracted_text[:2000] # Ограничиваем длину для ИИ
     }
 
