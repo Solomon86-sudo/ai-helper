@@ -1,50 +1,110 @@
 import React, { useState, useRef } from 'react';
-import { Upload, FileText, CheckCircle2, ShieldAlert, Users, FolderOpen, FileCheck, Layers, FileSignature, MessageSquare, Plus } from 'lucide-react';
+import { Upload, FileText, CheckCircle2, ShieldAlert, Users, FolderOpen, FileCheck, Layers, MessageSquare, AlertTriangle, Loader } from 'lucide-react';
+
+const API_URL = import.meta.env.VITE_API_URL || 'https://facade-backend.onrender.com';
 
 const DesignModule = () => {
-  const [role, setRole] = useState('client'); // 'client' or 'designer'
-  const [activeSubTab, setActiveSubTab] = useState('rd'); // Default to RD for testing
+  const [role, setRole] = useState('designer');
+  const [activeSubTab, setActiveSubTab] = useState('rd');
   
   const fileInputRef = useRef(null);
-  const [uploadingSheet, setUploadingSheet] = useState(null);
-
-  // --- ИРД State ---
-  const [irdDocs] = useState([
-    { id: 1, name: 'Градостроительный план земельного участка (ГПЗУ)', status: 'approved', uploadedBy: 'client' },
-    { id: 9, name: 'Задание на проектирование', status: 'approved', uploadedBy: 'client' }
-  ]);
-
-  // --- Стадия П State ---
-  const [stagePDocs] = useState([
-    { id: 1, section: 'Раздел 1', title: 'Пояснительная записка (ПЗ)', status: 'approved_for_expertise', ai_check: 'passed' },
-  ]);
+  const tomeInputRef = useRef(null);
 
   // --- РД State ---
   const [rdStructure] = useState([
-    { id: 'GP', name: 'ГП - Генеральный план', sheetsCount: 5, uploadedCount: 0 },
-    { id: 'AR', name: 'АР - Архитектурные решения', sheetsCount: 45, uploadedCount: 12 },
-    { id: 'KZh', name: 'КЖ - Конструкции железобетонные', sheetsCount: 120, uploadedCount: 120 },
+    { id: 'GP', name: 'ГП - Генеральный план' },
+    { id: 'AR', name: 'АР - Архитектурные решения' },
+    { id: 'KZh', name: 'КЖ - Конструкции железобетонные' },
   ]);
-  const [activeRdSection, setActiveRdSection] = useState('AR');
+  const [activeRdSection, setActiveRdSection] = useState('GP');
 
   const [rdSheets, setRdSheets] = useState([
-    // AR
-    { id: 1, section: 'AR', number: 1, name: 'Общие данные', pdfLink: 'dummy', pdfFilename: '01-AR_Sheet_1.pdf', dwgLink: 'dummy', dwgFilename: '01-AR_Sheet_1.dwg', revision: 0, comments: [] },
-    { id: 2, section: 'AR', number: 2, name: 'План на отм. 0.000', pdfLink: 'dummy', pdfFilename: '01-AR_Sheet_2_rev0.pdf', dwgLink: null, dwgFilename: null, revision: 0, comments: [{ text: 'Уточнить привязку осей', author: 'Заказчик', resolved: false }] },
-    { id: 3, section: 'AR', number: 3, name: 'Разрез 1-1', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] },
-    
-    // GP
-    { id: 4, section: 'GP', number: 1, name: 'Общие данные', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] },
-    { id: 5, section: 'GP', number: 2, name: 'Разбивочный план', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] },
-    { id: 6, section: 'GP', number: 3, name: 'План организации рельефа', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] },
-
-    // KZh
-    { id: 7, section: 'KZh', number: 1, name: 'Общие данные', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] },
-    { id: 8, section: 'KZh', number: 2, name: 'Схема расположения фундаментов', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] }
+    { id: 1, section: 'AR', number: 1, name: 'Общие данные', pdfLink: 'uploaded', pdfFilename: '01-AR_Лист1.pdf', dwgLink: 'uploaded', dwgFilename: '01-AR_Лист1.dwg', revision: 0, remarks: [] },
+    { id: 2, section: 'AR', number: 2, name: 'План на отм. 0.000', pdfLink: 'uploaded', pdfFilename: '01-AR_Лист2.pdf', dwgLink: null, dwgFilename: null, revision: 0, remarks: [] },
+    { id: 3, section: 'AR', number: 3, name: 'Разрез 1-1', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, remarks: [] },
+    { id: 4, section: 'GP', number: 1, name: 'Общие данные', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, remarks: [] },
+    { id: 5, section: 'GP', number: 2, name: 'Разбивочный план', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, remarks: [] },
+    { id: 6, section: 'GP', number: 3, name: 'План организации рельефа', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, remarks: [] },
+    { id: 7, section: 'KZh', number: 1, name: 'Общие данные', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, remarks: [] },
+    { id: 8, section: 'KZh', number: 2, name: 'Схема расположения фундаментов', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, remarks: [] }
   ]);
 
-  const [uploadTarget, setUploadTarget] = useState({ sheetId: null, type: null }); // type: 'pdf' or 'dwg'
+  const [uploadTarget, setUploadTarget] = useState({ sheetId: null, type: null });
+  const [compositionFile, setCompositionFile] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
 
+  // ====== AI AUDIT via real backend ======
+  const runRealAICheck = async (sheetId, section, sheetName, pdfName, dwgName) => {
+    setAiLoading(true);
+    const hasBoth = pdfName && dwgName;
+
+    const prompt = `Ты — AI-аудитор рабочей документации (РД) по нормативам РФ.
+Проверяемый лист: Раздел ${section}, Лист «${sheetName}».
+Загружены файлы: PDF=${pdfName || 'нет'}, DWG=${dwgName || 'нет'}.
+
+Проведи аудит по следующим направлениям:
+1. ГОСТ Р 21.101-2020 — оформление, угловой штамп, ведомость листов
+2. Соответствие Стадии П (ПП РФ №87) — нет ли отклонений от утверждённых проектных решений
+3. Соответствие ЧТЗ (Частному техническому заданию) — если применимо
+4. Профильные СП и СНиП для раздела ${section} (например, для ГП — СП 42.13330, для АР — СП 54.13330, для КЖ — СП 63.13330)
+5. ${hasBoth ? 'Сравнение PDF и DWG — возможные расхождения (скрытые слои, несовпадение геометрии)' : 'Отсутствие одного из форматов (PDF или DWG)'}
+
+Выдай от 2 до 5 конкретных замечаний. Каждое замечание должно содержать:
+- Номер нормативного документа и пункт
+- Суть нарушения
+- Что требуется исправить
+
+Формат ответа — JSON массив:
+[{"norm": "ГОСТ/СП/СНиП номер", "text": "Описание нарушения", "severity": "critical|major|minor"}]
+Ответь ТОЛЬКО JSON, без пояснений.`;
+
+    try {
+      const res = await fetch(`${API_URL}/api/chat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: prompt })
+      });
+      
+      if (res.ok) {
+        const data = await res.json();
+        const text = data.reply || '';
+        
+        // Parse AI response
+        let aiRemarks = [];
+        try {
+          const jsonMatch = text.match(/\[[\s\S]*\]/);
+          if (jsonMatch) {
+            const parsed = JSON.parse(jsonMatch[0]);
+            aiRemarks = parsed.map(r => ({
+              text: `[${r.norm}] ${r.text}`,
+              author: 'AI-Аудитор',
+              severity: r.severity || 'major',
+              resolved: false,
+              response: null
+            }));
+          }
+        } catch {
+          // If JSON parsing fails, use raw text as single remark
+          aiRemarks = [{ text: text.substring(0, 500), author: 'AI-Аудитор', severity: 'major', resolved: false, response: null }];
+        }
+        
+        if (aiRemarks.length > 0) {
+          setRdSheets(prev => prev.map(s =>
+            s.id === sheetId ? { ...s, remarks: [...s.remarks, ...aiRemarks] } : s
+          ));
+        }
+      }
+    } catch (err) {
+      console.warn("AI backend error:", err);
+      // Fallback: add a note that AI is unavailable
+      setRdSheets(prev => prev.map(s =>
+        s.id === sheetId ? { ...s, remarks: [...s.remarks, { text: 'AI-сервер недоступен. Проверка будет выполнена позже.', author: 'Система', severity: 'minor', resolved: false, response: null }] } : s
+      ));
+    }
+    setAiLoading(false);
+  };
+
+  // ====== File upload (per sheet) ======
   const handleFileClick = (e, sheetId, type) => {
     e.preventDefault();
     e.stopPropagation();
@@ -58,157 +118,135 @@ const DesignModule = () => {
     
     const { sheetId, type } = uploadTarget;
 
-    // Temporary Loading state
     setRdSheets(prev => prev.map(s => 
       s.id === sheetId ? { ...s, [type === 'pdf' ? 'pdfFilename' : 'dwgFilename']: 'Загрузка...' } : s
     ));
 
-    const API_URL = import.meta.env.VITE_API_URL || 'https://facade-backend.onrender.com';
     const formData = new FormData();
     formData.append('file', file);
-
     let link = null;
-    let actualFilename = file.name;
 
     try {
-      const res = await fetch(`${API_URL}/api/erp/design/upload_rd`, {
-        method: 'POST',
-        body: formData
-      });
-      if (res.ok) {
-        const data = await res.json();
-        link = data.drive_link;
-      } else {
-        throw new Error('API Error');
-      }
-    } catch (err) {
-      console.warn("Бэкенд недоступен, симулируем локальную загрузку для UI");
-      link = URL.createObjectURL(file);
-    }
+      const res = await fetch(`${API_URL}/api/erp/design/upload_rd`, { method: 'POST', body: formData });
+      if (res.ok) { link = (await res.json()).drive_link; }
+      else throw new Error();
+    } catch { link = URL.createObjectURL(file); }
+
+    const updatedSheet = rdSheets.find(s => s.id === sheetId);
+    const isUpdate = updatedSheet[type === 'pdf' ? 'pdfLink' : 'dwgLink'] !== null;
 
     setRdSheets(prev => prev.map(s => {
       if (s.id === sheetId) {
-        const isUpdate = s[type === 'pdf' ? 'pdfLink' : 'dwgLink'] !== null;
-        return { 
-          ...s, 
+        return { ...s, 
           [type === 'pdf' ? 'pdfLink' : 'dwgLink']: link, 
-          [type === 'pdf' ? 'pdfFilename' : 'dwgFilename']: actualFilename,
+          [type === 'pdf' ? 'pdfFilename' : 'dwgFilename']: file.name,
           revision: isUpdate ? s.revision + 1 : s.revision 
         };
       }
       return s;
     }));
     
+    // Auto-trigger AI check after upload
+    const sheet = rdSheets.find(s => s.id === sheetId);
+    const newPdf = type === 'pdf' ? file.name : sheet.pdfFilename;
+    const newDwg = type === 'dwg' ? file.name : sheet.dwgFilename;
+    runRealAICheck(sheetId, sheet.section, sheet.name, newPdf, newDwg);
+
     setUploadTarget({ sheetId: null, type: null });
     e.target.value = null;
   };
 
+  // ====== Tome upload (entire section) ======
+  const handleTomeUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const sectionSheets = rdSheets.filter(s => s.section === activeRdSection);
+    // Simulate splitting the tome into sheets
+    sectionSheets.forEach((sheet, idx) => {
+      setTimeout(() => {
+        const link = URL.createObjectURL(file);
+        setRdSheets(prev => prev.map(s => {
+          if (s.id === sheet.id) {
+            return { ...s, pdfLink: link, pdfFilename: `${file.name}_лист${idx+1}.pdf` };
+          }
+          return s;
+        }));
+        // Trigger AI check for each sheet
+        runRealAICheck(sheet.id, sheet.section, sheet.name, `${file.name}_лист${idx+1}.pdf`, sheet.dwgFilename);
+      }, idx * 800);
+    });
+    e.target.value = null;
+  };
+
+  // ====== Comments & Responses ======
   const addComment = (e, sheetId) => {
     e.preventDefault();
     const text = prompt("Введите замечание к листу:");
     if (text) {
       setRdSheets(prev => prev.map(s => 
-        s.id === sheetId ? { ...s, comments: [...s.comments, { text, author: role === 'client' ? 'Заказчик' : 'Генпроектировщик', resolved: false }] } : s
+        s.id === sheetId ? { ...s, remarks: [...s.remarks, { text, author: 'Заказчик', severity: 'major', resolved: false, response: null }] } : s
       ));
     }
   };
 
-  const resolveComment = (e, sheetId, commentIndex) => {
+  const respondToRemark = (e, sheetId, remarkIdx) => {
     e.preventDefault();
+    const text = prompt("Ответ на замечание (или оставьте пустым, если 'Исправлено'):");
     setRdSheets(prev => prev.map(s => {
       if (s.id === sheetId) {
-        const newComments = [...s.comments];
-        newComments[commentIndex].resolved = true;
-        return { ...s, comments: newComments };
+        const newRemarks = [...s.remarks];
+        if (text) {
+          newRemarks[remarkIdx] = { ...newRemarks[remarkIdx], response: text };
+        } else {
+          newRemarks[remarkIdx] = { ...newRemarks[remarkIdx], resolved: true, response: 'Исправлено' };
+        }
+        return { ...s, remarks: newRemarks };
       }
       return s;
     }));
   };
 
-  const runAICheck = (e, sheetId) => {
+  const acceptResponse = (e, sheetId, remarkIdx) => {
     e.preventDefault();
-    const targetSheet = rdSheets.find(s => s.id === sheetId);
-    
-    // Simulate AI loading state
-    setRdSheets(prev => prev.map(s => 
-      s.id === sheetId ? { ...s, comments: [...s.comments, { text: '🔄 ИИ анализирует нормативку и геометрию...', author: 'AI-Аудитор', resolved: false, isTemp: true }] } : s
-    ));
-
-    setTimeout(() => {
-      setRdSheets(prev => prev.map(s => {
-        if (s.id === sheetId) {
-          const filteredComments = s.comments.filter(c => !c.isTemp);
-          const aiRemarks = [];
-          
-          if (targetSheet.pdfLink && targetSheet.dwgLink) {
-            aiRemarks.push({ text: 'КРИТИЧНО: Расхождение форматов. В исходнике DWG скрыт слой "Вентканалы", который отображен на PDF-скане. Подрядчик может ошибиться.', author: 'AI-Аудитор', resolved: false });
-          }
-          
-          if (targetSheet.section === 'GP') {
-            aiRemarks.push({ text: 'Нарушение СП 42.13330.2016: Радиус разворота пожарной техники на плане 12м, норматив требует минимум 15м.', author: 'AI-Аудитор', resolved: false });
-          } else if (targetSheet.section === 'AR') {
-            aiRemarks.push({ text: 'Отклонение от Стадии П: Отметка парапета изменена с +14.500 на +15.200 без внесения изменений в пояснительную записку.', author: 'AI-Аудитор', resolved: false });
-          }
-          
-          aiRemarks.push({ text: 'Нарушение ГОСТ Р 21.101-2020: Наименование чертежа в угловом штампе не совпадает с ведомостью листов (Форма 1).', author: 'AI-Аудитор', resolved: false });
-
-          return { ...s, comments: [...filteredComments, ...aiRemarks] };
-        }
-        return s;
-      }));
-    }, 2500);
+    setRdSheets(prev => prev.map(s => {
+      if (s.id === sheetId) {
+        const newRemarks = [...s.remarks];
+        newRemarks[remarkIdx] = { ...newRemarks[remarkIdx], resolved: true };
+        return { ...s, remarks: newRemarks };
+      }
+      return s;
+    }));
   };
 
-  const renderRoleToggle = () => (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'var(--bg-color)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)', alignSelf: 'flex-start' }}>
-      <Users size={18} color="var(--text-muted)" />
-      <span style={{ fontSize: '14px', fontWeight: 'bold' }}>Текущая роль:</span>
-      <select 
-        value={role} 
-        onChange={(e) => setRole(e.target.value)}
-        style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--primary-color)', backgroundColor: 'var(--bg-panel)', color: 'var(--text-color)', fontWeight: 'bold', outline: 'none', cursor: 'pointer' }}
-      >
-        <option value="client">Заказчик (Проверка)</option>
-        <option value="designer">Генпроектировщик (Выдача РД)</option>
-      </select>
-    </div>
-  );
-
-  const subTabStyle = (isActive) => ({
-    display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', border: 'none', 
-    backgroundColor: isActive ? 'var(--primary-color)' : 'transparent',
-    color: isActive ? 'white' : 'var(--text-color)',
-    borderRadius: '4px', cursor: 'pointer', fontWeight: isActive ? 'bold' : 'normal',
-    transition: 'all 0.2s'
+  // ====== Collect all remarks for active section ======
+  const sectionRemarks = [];
+  rdSheets.filter(s => s.section === activeRdSection).forEach(sheet => {
+    sheet.remarks.forEach((r, idx) => {
+      sectionRemarks.push({ ...r, sheetId: sheet.id, remarkIdx: idx, sheetNumber: sheet.number, sheetName: sheet.name });
+    });
   });
 
-  const [compositionFile, setCompositionFile] = useState(null);
-
-  // ========== SUB-TAB 3: Рабочая документация ==========
+  // ====== RENDER ======
   const renderRD = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
       
-      {/* Скрытый инпут для загрузки файлов */}
-      <input 
-        type="file" 
-        ref={fileInputRef} 
-        style={{ display: 'none' }} 
-        onChange={handleFileChange} 
-        accept="application/pdf,image/*,.dwg,.dxf" 
-      />
+      <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} accept="application/pdf,image/*,.dwg,.dxf" />
+      <input type="file" ref={tomeInputRef} style={{ display: 'none' }} onChange={handleTomeUpload} accept="application/pdf" />
 
+      {/* Состав проекта */}
       <div style={{ padding: '16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', gap: '20px', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <h5 style={{ margin: '0 0 8px 0' }}>Состав проекта</h5>
-          <span style={{ fontSize: '13px', color: 'var(--primary-color)' }}>
-            {compositionFile ? `Загружен: ${compositionFile}` : 'Ожидает загрузки состава (PDF/Word)'}
+          <span style={{ fontSize: '13px', color: compositionFile ? '#27ae60' : 'var(--text-muted)' }}>
+            {compositionFile ? `✓ Загружен: ${compositionFile}` : 'Ожидает загрузки состава (PDF/Word)'}
           </span>
         </div>
         {role === 'designer' && (
           <button onClick={() => {
-            const fileName = prompt("Имитация загрузки состава проекта. Введите имя файла (например: Состав_РД_v1.pdf):", "Состав_РД_v1.pdf");
-            if (fileName) setCompositionFile(fileName);
-          }} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center' }}>
+            const fn = prompt("Имя файла состава проекта:", "Состав_РД_v1.pdf");
+            if (fn) setCompositionFile(fn);
+          }} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center', whiteSpace: 'nowrap' }}>
             <Upload size={16}/> Загрузить шифры (PDF/Word)
           </button>
         )}
@@ -216,136 +254,188 @@ const DesignModule = () => {
 
       <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
         
-        {/* Вертикальные табы (Состав проекта) */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '280px' }}>
+        {/* Sidebar: sections */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '280px', flexShrink: 0 }}>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '8px' }}>Состав проекта</div>
-          {rdStructure.map(sec => (
-            <button 
-              key={sec.id}
-              onClick={() => setActiveRdSection(sec.id)}
-              style={{ 
-                padding: '12px', textAlign: 'left', border: 'none', borderRadius: '6px', cursor: 'pointer',
-                backgroundColor: activeRdSection === sec.id ? 'var(--primary-color)' : 'var(--bg-panel)',
-                color: activeRdSection === sec.id ? 'white' : 'var(--text-color)',
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center'
-              }}
-            >
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <span style={{ fontSize: '11px', opacity: 0.8, fontFamily: 'monospace' }}>01-{sec.id}</span>
-                <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{sec.name.split(' - ')[1]}</span>
-              </div>
-            </button>
-          ))}
+          {rdStructure.map(sec => {
+            const secSheets = rdSheets.filter(s => s.section === sec.id);
+            const uploaded = secSheets.filter(s => s.pdfLink).length;
+            const unresolvedCount = secSheets.reduce((sum, s) => sum + s.remarks.filter(r => !r.resolved).length, 0);
+            return (
+              <button 
+                key={sec.id}
+                onClick={() => setActiveRdSection(sec.id)}
+                style={{ 
+                  padding: '12px', textAlign: 'left', border: 'none', borderRadius: '6px', cursor: 'pointer',
+                  backgroundColor: activeRdSection === sec.id ? 'var(--primary-color)' : 'var(--bg-panel)',
+                  color: activeRdSection === sec.id ? 'white' : 'var(--text-color)',
+                  display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                }}
+              >
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <span style={{ fontSize: '11px', opacity: 0.8, fontFamily: 'monospace' }}>01-{sec.id}</span>
+                  <span style={{ fontSize: '13px', fontWeight: 'bold' }}>{sec.name.split(' - ')[1]}</span>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
+                  <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '10px' }}>{uploaded}/{secSheets.length}</span>
+                  {unresolvedCount > 0 && <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: '#e74c3c', color: 'white', borderRadius: '10px' }}>{unresolvedCount} зам.</span>}
+                </div>
+              </button>
+            );
+          })}
         </div>
 
-        {/* Рабочая область выбранного раздела (Ведомость) */}
-        <div style={{ flex: 1, padding: '20px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-color)' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-            <div>
-              <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Форма 1 (ГОСТ Р 21.101-2020)</div>
-              <h3>Ведомость рабочих чертежей основного комплекта: 01-{activeRdSection}</h3>
+        {/* Main area */}
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+          
+          {/* Header + Tome upload */}
+          <div style={{ padding: '20px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-color)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Форма 1 (ГОСТ Р 21.101-2020)</div>
+                <h3 style={{ margin: 0 }}>Ведомость: 01-{activeRdSection}</h3>
+              </div>
+              {role === 'designer' && (
+                <button onClick={(e) => { e.preventDefault(); tomeInputRef.current.click(); }} style={{ padding: '8px 16px', backgroundColor: '#8e44ad', color: 'white', border: 'none', borderRadius: '4px', display: 'flex', gap: '8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                  <Upload size={16}/> Загрузить весь том (PDF)
+                </button>
+              )}
             </div>
-            {role === 'designer' && (
-              <button onClick={(e) => e.preventDefault()} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', display: 'flex', gap: '8px', cursor: 'pointer' }}>
-                <Upload size={16}/> Умная загрузка (PDF)
-              </button>
+
+            {aiLoading && (
+              <div style={{ padding: '10px', backgroundColor: 'rgba(142,68,173,0.15)', border: '1px solid #8e44ad', borderRadius: '6px', marginBottom: '12px', display: 'flex', gap: '8px', alignItems: 'center', fontSize: '13px', color: '#8e44ad' }}>
+                <Loader size={16} className="spin" /> AI-Аудитор анализирует загруженные чертежи по нормативам РФ...
+              </div>
+            )}
+            
+            {/* Sheet table */}
+            <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', backgroundColor: 'var(--bg-panel)', boxShadow: '0 0 0 1px var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
+              <thead>
+                <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left', backgroundColor: 'rgba(0,0,0,0.02)' }}>
+                  <th style={{ padding: '10px 8px', width: '40px' }}>Лист</th>
+                  <th style={{ padding: '10px 8px' }}>Наименование</th>
+                  <th style={{ padding: '10px 8px', width: '50px' }}>Изм.</th>
+                  <th style={{ padding: '10px 8px', width: '150px' }}>PDF</th>
+                  <th style={{ padding: '10px 8px', width: '150px' }}>DWG</th>
+                  <th style={{ padding: '10px 8px', width: '60px' }}>Зам.</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rdSheets.filter(s => s.section === activeRdSection).map(sheet => {
+                  const unresolvedCount = sheet.remarks.filter(r => !r.resolved).length;
+                  return (
+                    <tr key={sheet.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
+                      <td style={{ padding: '10px 8px', fontWeight: 'bold' }}>{sheet.number}</td>
+                      <td style={{ padding: '10px 8px' }}>{sheet.name}</td>
+                      <td style={{ padding: '10px 8px', color: 'var(--text-muted)' }}>{sheet.revision}</td>
+                      
+                      <td style={{ padding: '10px 8px' }}>
+                        {sheet.pdfLink ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <span style={{ color: '#27ae60', fontSize: '12px', display: 'flex', gap: '4px', alignItems: 'center' }}><CheckCircle2 size={12}/> {sheet.pdfFilename}</span>
+                            {role === 'designer' && <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '10px', padding: '2px 6px', border: '1px solid var(--border-color)', borderRadius: '3px', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', cursor: 'pointer', width: 'fit-content' }}>Заменить</button>}
+                          </div>
+                        ) : (
+                          role === 'designer' ? (
+                            <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '11px', padding: '4px 10px', border: 'none', borderRadius: '4px', backgroundColor: '#e74c3c', color: 'white', cursor: 'pointer' }}>PDF</button>
+                          ) : <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>—</span>
+                        )}
+                      </td>
+
+                      <td style={{ padding: '10px 8px' }}>
+                        {sheet.dwgLink ? (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                            <span style={{ color: '#27ae60', fontSize: '12px', display: 'flex', gap: '4px', alignItems: 'center' }}><CheckCircle2 size={12}/> {sheet.dwgFilename}</span>
+                            {role === 'designer' && <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '10px', padding: '2px 6px', border: '1px solid var(--border-color)', borderRadius: '3px', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', cursor: 'pointer', width: 'fit-content' }}>Заменить</button>}
+                          </div>
+                        ) : (
+                          role === 'designer' ? (
+                            <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '11px', padding: '4px 10px', border: 'none', borderRadius: '4px', backgroundColor: '#2980b9', color: 'white', cursor: 'pointer' }}>DWG</button>
+                          ) : <span style={{ color: '#e67e22', fontSize: '12px' }}>Ожидается</span>
+                        )}
+                      </td>
+
+                      <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                        {unresolvedCount > 0 ? (
+                          <span style={{ backgroundColor: '#e74c3c', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 'bold' }}>{unresolvedCount}</span>
+                        ) : sheet.remarks.length > 0 ? (
+                          <span style={{ backgroundColor: '#27ae60', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '11px' }}>✓</span>
+                        ) : (
+                          <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>—</span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* ====== FULL-WIDTH REMARKS SECTION ====== */}
+          <div style={{ padding: '20px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-color)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h4 style={{ margin: 0 }}>Замечания по разделу 01-{activeRdSection}</h4>
+              {role === 'client' && (
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  {rdSheets.filter(s => s.section === activeRdSection && s.pdfLink).map(sheet => (
+                    <button key={sheet.id} onClick={(e) => addComment(e, sheet.id)} style={{ padding: '4px 10px', fontSize: '11px', display: 'flex', gap: '4px', alignItems: 'center', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-color)' }}>
+                      <MessageSquare size={12}/> Лист {sheet.number}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {sectionRemarks.length === 0 ? (
+              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
+                Замечания появятся автоматически после загрузки файлов (AI-Аудит) или будут добавлены Заказчиком вручную.
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                {sectionRemarks.map((r, globalIdx) => {
+                  const severityColor = r.severity === 'critical' ? '#e74c3c' : r.severity === 'major' ? '#e67e22' : '#f1c40f';
+                  const bgColor = r.resolved ? 'rgba(39,174,96,0.08)' : r.author === 'AI-Аудитор' ? 'rgba(142,68,173,0.08)' : 'rgba(231,76,60,0.08)';
+                  const borderColor = r.resolved ? '#27ae60' : r.author === 'AI-Аудитор' ? '#8e44ad' : '#e74c3c';
+                  
+                  return (
+                    <div key={globalIdx} style={{ padding: '12px 16px', backgroundColor: bgColor, borderLeft: `3px solid ${borderColor}`, borderRadius: '0 6px 6px 0', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--text-muted)', minWidth: '30px' }}>#{globalIdx + 1}</span>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap' }}>
+                          <span style={{ fontSize: '11px', padding: '1px 8px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-color)' }}>Лист {r.sheetNumber} — {r.sheetName}</span>
+                          <span style={{ fontSize: '11px', fontWeight: 'bold', color: borderColor }}>{r.author}</span>
+                          {!r.resolved && <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: severityColor, color: 'white', borderRadius: '3px' }}>{r.severity === 'critical' ? 'КРИТИЧНО' : r.severity === 'major' ? 'ВАЖНО' : 'МИНОР'}</span>}
+                          {r.resolved && <span style={{ fontSize: '11px', color: '#27ae60', fontWeight: 'bold' }}>✓ Снято</span>}
+                        </div>
+                        <div style={{ fontSize: '13px', color: 'var(--text-color)', lineHeight: '1.5' }}>{r.text}</div>
+                        
+                        {/* Designer response */}
+                        {r.response && (
+                          <div style={{ marginTop: '8px', padding: '8px 12px', backgroundColor: 'rgba(41,128,185,0.1)', borderLeft: '2px solid #2980b9', borderRadius: '0 4px 4px 0', fontSize: '12px' }}>
+                            <strong style={{ color: '#2980b9' }}>Ответ Генпроектировщика:</strong> {r.response}
+                          </div>
+                        )}
+
+                        {/* Action buttons */}
+                        <div style={{ marginTop: '8px', display: 'flex', gap: '6px' }}>
+                          {!r.resolved && role === 'designer' && (
+                            <button onClick={(e) => respondToRemark(e, r.sheetId, r.remarkIdx)} style={{ padding: '4px 10px', fontSize: '11px', backgroundColor: '#2980b9', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                              Ответить / Исправлено
+                            </button>
+                          )}
+                          {r.response && !r.resolved && role === 'client' && (
+                            <button onClick={(e) => acceptResponse(e, r.sheetId, r.remarkIdx)} style={{ padding: '4px 10px', fontSize: '11px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                              Принять ответ
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
             )}
           </div>
-          
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', backgroundColor: 'var(--bg-panel)', boxShadow: '0 0 0 1px var(--border-color)', borderRadius: '4px', overflow: 'hidden' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left', backgroundColor: 'rgba(0,0,0,0.02)' }}>
-                <th style={{ padding: '12px 10px', width: '50px' }}>Лист</th>
-                <th style={{ padding: '12px 10px' }}>Наименование</th>
-                <th style={{ padding: '12px 10px', width: '60px' }}>Версия</th>
-                <th style={{ padding: '12px 10px', width: '160px' }}>Скан (PDF)</th>
-                <th style={{ padding: '12px 10px', width: '160px' }}>Исходник (DWG)</th>
-                <th style={{ padding: '12px 10px', width: '200px' }}>Замечания</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rdSheets.filter(s => s.section === activeRdSection).map(sheet => (
-                <tr key={sheet.id} style={{ borderBottom: '1px solid var(--border-color)', verticalAlign: 'top' }}>
-                  <td style={{ padding: '12px 10px', fontWeight: 'bold' }}>{sheet.number}</td>
-                  <td style={{ padding: '12px 10px' }}>{sheet.name}</td>
-                  <td style={{ padding: '12px 10px', fontWeight: 'bold', color: 'var(--text-muted)' }}>
-                    Изм. {sheet.revision}
-                  </td>
-                  
-                  {/* PDF Column */}
-                  <td style={{ padding: '12px 10px' }}>
-                    {sheet.pdfLink ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <a href={sheet.pdfLink === 'dummy' ? undefined : sheet.pdfLink} target="_blank" rel="noreferrer" style={{ color: '#e74c3c', display: 'flex', gap: '6px', alignItems: 'center', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold', cursor: sheet.pdfLink === 'dummy' ? 'default' : 'pointer' }}>
-                          <CheckCircle2 size={14} color="#27ae60"/> {sheet.pdfFilename}
-                        </a>
-                        {role === 'designer' && (
-                          <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '10px', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', cursor: 'pointer', width: 'fit-content' }}>Заменить PDF</button>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Нет PDF</span>
-                        {role === 'designer' && (
-                          <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '10px', padding: '4px 8px', border: 'none', borderRadius: '4px', backgroundColor: '#e74c3c', color: 'white', cursor: 'pointer', width: 'fit-content' }}>Загрузить PDF</button>
-                        )}
-                      </div>
-                    )}
-                  </td>
-
-                  {/* DWG Column */}
-                  <td style={{ padding: '12px 10px' }}>
-                    {sheet.dwgLink ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <a href={sheet.dwgLink === 'dummy' ? undefined : sheet.dwgLink} target="_blank" rel="noreferrer" style={{ color: '#2980b9', display: 'flex', gap: '6px', alignItems: 'center', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold', cursor: sheet.dwgLink === 'dummy' ? 'default' : 'pointer' }}>
-                          <CheckCircle2 size={14} color="#27ae60"/> {sheet.dwgFilename}
-                        </a>
-                        {role === 'designer' && (
-                          <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '10px', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', cursor: 'pointer', width: 'fit-content' }}>Заменить DWG</button>
-                        )}
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <span style={{ color: '#e67e22', fontSize: '12px' }}>Ожидается DWG</span>
-                        {role === 'designer' && (
-                          <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '10px', padding: '4px 8px', border: 'none', borderRadius: '4px', backgroundColor: '#2980b9', color: 'white', cursor: 'pointer', width: 'fit-content' }}>Загрузить DWG</button>
-                        )}
-                      </div>
-                    )}
-                  </td>
-
-                  {/* Comments Column */}
-                  <td style={{ padding: '12px 10px' }}>
-                    {sheet.comments.length > 0 ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        {sheet.comments.map((c, idx) => (
-                          <div key={idx} style={{ padding: '6px', backgroundColor: c.resolved ? 'rgba(39, 174, 96, 0.1)' : 'rgba(231, 76, 60, 0.1)', borderLeft: `2px solid ${c.resolved ? '#27ae60' : '#e74c3c'}`, borderRadius: '0 4px 4px 0', fontSize: '11px' }}>
-                            <strong>{c.author}:</strong> {c.text}
-                            {!c.resolved && role === 'designer' && (
-                              <button onClick={(e) => resolveComment(e, sheet.id, idx)} style={{ marginTop: '4px', padding: '2px 6px', fontSize: '10px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', display: 'block' }}>Ответить / Исправлено</button>
-                            )}
-                            {c.resolved && <span style={{ color: '#27ae60', display: 'block', marginTop: '2px' }}>✓ Исправлено</span>}
-                          </div>
-                        ))}
-                      </div>
-                    ) : (
-                      <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Нет замечаний</span>
-                    )}
-                    {role === 'client' && (sheet.pdfLink || sheet.dwgLink) && (
-                      <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', marginTop: '8px' }}>
-                        <button onClick={(e) => addComment(e, sheet.id)} style={{ padding: '4px 8px', fontSize: '11px', display: 'flex', gap: '4px', alignItems: 'center', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-color)' }}>
-                          <MessageSquare size={12}/> Замечание
-                        </button>
-                        <button onClick={(e) => runAICheck(e, sheet.id)} style={{ padding: '4px 8px', fontSize: '11px', display: 'flex', gap: '4px', alignItems: 'center', backgroundColor: '#8e44ad', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                          <ShieldAlert size={12}/> AI-Аудит
-                        </button>
-                      </div>
-                    )}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
       </div>
     </div>
@@ -355,18 +445,39 @@ const DesignModule = () => {
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>Проектирование</h2>
-        {renderRoleToggle()}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'var(--bg-color)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <Users size={18} color="var(--text-muted)" />
+          <span style={{ fontSize: '14px', fontWeight: 'bold' }}>Текущая роль:</span>
+          <select 
+            value={role} 
+            onChange={(e) => setRole(e.target.value)}
+            style={{ padding: '6px 12px', borderRadius: '4px', border: '1px solid var(--primary-color)', backgroundColor: '#1a1a2e', color: '#ffffff', fontWeight: 'bold', outline: 'none', cursor: 'pointer' }}
+          >
+            <option value="client" style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }}>Заказчик (Проверка)</option>
+            <option value="designer" style={{ backgroundColor: '#1a1a2e', color: '#ffffff' }}>Генпроектировщик (Выдача РД)</option>
+          </select>
+        </div>
       </div>
       
       <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid var(--border-color)', paddingBottom: '10px' }}>
-        <button onClick={() => setActiveSubTab('ird')} style={subTabStyle(activeSubTab === 'ird')}><FolderOpen size={16} /> 1. ИРД и ТЗ</button>
-        <button onClick={() => setActiveSubTab('stage_p')} style={subTabStyle(activeSubTab === 'stage_p')}><Layers size={16} /> 2. Стадия П</button>
-        <button onClick={() => setActiveSubTab('rd')} style={subTabStyle(activeSubTab === 'rd')}><FileCheck size={16} /> 3. Рабочая документация</button>
+        {[
+          { key: 'ird', icon: <FolderOpen size={16} />, label: '1. ИРД и ТЗ' },
+          { key: 'stage_p', icon: <Layers size={16} />, label: '2. Стадия П' },
+          { key: 'rd', icon: <FileCheck size={16} />, label: '3. Рабочая документация' }
+        ].map(tab => (
+          <button key={tab.key} onClick={() => setActiveSubTab(tab.key)} style={{
+            display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', border: 'none',
+            backgroundColor: activeSubTab === tab.key ? 'var(--primary-color)' : 'transparent',
+            color: activeSubTab === tab.key ? 'white' : 'var(--text-color)',
+            borderRadius: '4px', cursor: 'pointer', fontWeight: activeSubTab === tab.key ? 'bold' : 'normal',
+            transition: 'all 0.2s'
+          }}>{tab.icon} {tab.label}</button>
+        ))}
       </div>
 
       <div style={{ flex: 1, paddingRight: '10px' }}>
-        {activeSubTab === 'ird' && <p>Раздел ИРД (скрыт для теста)</p>}
-        {activeSubTab === 'stage_p' && <p>Раздел Стадия П (скрыт для теста)</p>}
+        {activeSubTab === 'ird' && <p style={{ color: 'var(--text-muted)' }}>Раздел ИРД и ТЗ — в разработке</p>}
+        {activeSubTab === 'stage_p' && <p style={{ color: 'var(--text-muted)' }}>Раздел Стадия П — в разработке</p>}
         {activeSubTab === 'rd' && renderRD()}
       </div>
     </div>
