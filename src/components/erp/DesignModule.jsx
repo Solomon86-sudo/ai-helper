@@ -9,6 +9,7 @@ const DesignModule = () => {
   
   const fileInputRef = useRef(null);
   const tomeInputRef = useRef(null);
+  const tomeDwgInputRef = useRef(null);
 
   // --- РД State ---
   const [rdStructure] = useState([
@@ -34,7 +35,7 @@ const DesignModule = () => {
   const [aiLoading, setAiLoading] = useState(false);
 
   // ====== AI AUDIT via real backend ======
-  const runRealAICheck = async (sheetId, section, sheetName, pdfName, dwgName) => {
+  const runRealAICheck = async (sheetId, section, sheetName, pdfName, dwgName, isRetry = false) => {
     setAiLoading(true);
     const hasBoth = pdfName && dwgName;
 
@@ -84,7 +85,6 @@ const DesignModule = () => {
             }));
           }
         } catch {
-          // If JSON parsing fails, use raw text as single remark
           aiRemarks = [{ text: text.substring(0, 500), author: 'AI-Аудитор', severity: 'major', resolved: false, response: null }];
         }
         
@@ -95,11 +95,23 @@ const DesignModule = () => {
         }
       }
     } catch (err) {
-      console.warn("AI backend error:", err);
-      // Fallback: add a note that AI is unavailable
-      setRdSheets(prev => prev.map(s =>
-        s.id === sheetId ? { ...s, remarks: [...s.remarks, { text: 'AI-сервер недоступен. Проверка будет выполнена позже.', author: 'Система', severity: 'minor', resolved: false, response: null }] } : s
-      ));
+      console.warn("AI backend error, retrying in 30s (cold start):", err);
+      // Render free tier sleeps — retry once after wake-up
+      if (!isRetry) {
+        setRdSheets(prev => prev.map(s =>
+          s.id === sheetId ? { ...s, remarks: [...s.remarks, { text: '⏳ AI-сервер просыпается (~30 сек). Повторная проверка запущена автоматически...', author: 'Система', severity: 'minor', resolved: false, response: null, isTemp: true }] } : s
+        ));
+        setTimeout(() => {
+          setRdSheets(prev => prev.map(s =>
+            s.id === sheetId ? { ...s, remarks: s.remarks.filter(r => !r.isTemp) } : s
+          ));
+          runRealAICheck(sheetId, section, sheetName, pdfName, dwgName, true);
+        }, 30000);
+      } else {
+        setRdSheets(prev => prev.map(s =>
+          s.id === sheetId ? { ...s, remarks: [...s.remarks, { text: 'AI-сервер недоступен. Проверьте подключение к интернету или попробуйте позже.', author: 'Система', severity: 'minor', resolved: false, response: null }] } : s
+        ));
+      }
     }
     setAiLoading(false);
   };
@@ -156,25 +168,43 @@ const DesignModule = () => {
     e.target.value = null;
   };
 
-  // ====== Tome upload (entire section) ======
+  // ====== Tome upload (entire section as PDF) ======
   const handleTomeUpload = (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
     const sectionSheets = rdSheets.filter(s => s.section === activeRdSection);
-    // Simulate splitting the tome into sheets
     sectionSheets.forEach((sheet, idx) => {
       setTimeout(() => {
         const link = URL.createObjectURL(file);
         setRdSheets(prev => prev.map(s => {
           if (s.id === sheet.id) {
-            return { ...s, pdfLink: link, pdfFilename: `${file.name}_лист${idx+1}.pdf` };
+            return { ...s, pdfLink: link, pdfFilename: `${activeRdSection}_лист${idx+1}.pdf` };
           }
           return s;
         }));
-        // Trigger AI check for each sheet
-        runRealAICheck(sheet.id, sheet.section, sheet.name, `${file.name}_лист${idx+1}.pdf`, sheet.dwgFilename);
+        runRealAICheck(sheet.id, sheet.section, sheet.name, `${activeRdSection}_лист${idx+1}.pdf`, sheet.dwgFilename);
       }, idx * 800);
+    });
+    e.target.value = null;
+  };
+
+  // ====== Tome upload (entire section as DWG) ======
+  const handleTomeDwgUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    const sectionSheets = rdSheets.filter(s => s.section === activeRdSection);
+    sectionSheets.forEach((sheet, idx) => {
+      setTimeout(() => {
+        const link = URL.createObjectURL(file);
+        setRdSheets(prev => prev.map(s => {
+          if (s.id === sheet.id) {
+            return { ...s, dwgLink: link, dwgFilename: `${activeRdSection}_лист${idx+1}.dwg` };
+          }
+          return s;
+        }));
+      }, idx * 500);
     });
     e.target.value = null;
   };
@@ -233,6 +263,7 @@ const DesignModule = () => {
       
       <input type="file" ref={fileInputRef} style={{ display: 'none' }} onChange={handleFileChange} accept="application/pdf,image/*,.dwg,.dxf" />
       <input type="file" ref={tomeInputRef} style={{ display: 'none' }} onChange={handleTomeUpload} accept="application/pdf" />
+      <input type="file" ref={tomeDwgInputRef} style={{ display: 'none' }} onChange={handleTomeDwgUpload} accept=".dwg,.dxf" />
 
       {/* Состав проекта */}
       <div style={{ padding: '16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', gap: '20px', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -296,9 +327,14 @@ const DesignModule = () => {
                 <h3 style={{ margin: 0 }}>Ведомость: 01-{activeRdSection}</h3>
               </div>
               {role === 'designer' && (
-                <button onClick={(e) => { e.preventDefault(); tomeInputRef.current.click(); }} style={{ padding: '8px 16px', backgroundColor: '#8e44ad', color: 'white', border: 'none', borderRadius: '4px', display: 'flex', gap: '8px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
-                  <Upload size={16}/> Загрузить весь том (PDF)
-                </button>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={(e) => { e.preventDefault(); tomeInputRef.current.click(); }} style={{ padding: '8px 14px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', display: 'flex', gap: '6px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '12px' }}>
+                    <Upload size={14}/> Том PDF
+                  </button>
+                  <button onClick={(e) => { e.preventDefault(); tomeDwgInputRef.current.click(); }} style={{ padding: '8px 14px', backgroundColor: '#2980b9', color: 'white', border: 'none', borderRadius: '4px', display: 'flex', gap: '6px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '12px' }}>
+                    <Upload size={14}/> Том DWG
+                  </button>
+                </div>
               )}
             </div>
 
