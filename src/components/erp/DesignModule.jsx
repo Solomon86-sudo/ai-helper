@@ -28,9 +28,19 @@ const DesignModule = () => {
   const [activeRdSection, setActiveRdSection] = useState('AR');
 
   const [rdSheets, setRdSheets] = useState([
+    // AR
     { id: 1, section: 'AR', number: 1, name: 'Общие данные', pdfLink: 'dummy', pdfFilename: '01-AR_Sheet_1.pdf', dwgLink: 'dummy', dwgFilename: '01-AR_Sheet_1.dwg', revision: 0, comments: [] },
     { id: 2, section: 'AR', number: 2, name: 'План на отм. 0.000', pdfLink: 'dummy', pdfFilename: '01-AR_Sheet_2_rev0.pdf', dwgLink: null, dwgFilename: null, revision: 0, comments: [{ text: 'Уточнить привязку осей', author: 'Заказчик', resolved: false }] },
-    { id: 3, section: 'AR', number: 3, name: 'Разрез 1-1', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] }
+    { id: 3, section: 'AR', number: 3, name: 'Разрез 1-1', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] },
+    
+    // GP
+    { id: 4, section: 'GP', number: 1, name: 'Общие данные', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] },
+    { id: 5, section: 'GP', number: 2, name: 'Разбивочный план', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] },
+    { id: 6, section: 'GP', number: 3, name: 'План организации рельефа', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] },
+
+    // KZh
+    { id: 7, section: 'KZh', number: 1, name: 'Общие данные', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] },
+    { id: 8, section: 'KZh', number: 2, name: 'Схема расположения фундаментов', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] }
   ]);
 
   const [uploadTarget, setUploadTarget] = useState({ sheetId: null, type: null }); // type: 'pdf' or 'dwg'
