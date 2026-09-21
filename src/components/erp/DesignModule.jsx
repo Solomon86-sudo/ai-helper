@@ -315,7 +315,7 @@ const DesignModule = () => {
         <button onClick={() => setActiveSubTab('rd')} style={subTabStyle(activeSubTab === 'rd')}><FileCheck size={16} /> 3. Рабочая документация</button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', paddingRight: '10px' }}>
+      <div style={{ flex: 1, paddingRight: '10px' }}>
         {activeSubTab === 'ird' && <p>Раздел ИРД (скрыт для теста)</p>}
         {activeSubTab === 'stage_p' && <p>Раздел Стадия П (скрыт для теста)</p>}
         {activeSubTab === 'rd' && renderRD()}
