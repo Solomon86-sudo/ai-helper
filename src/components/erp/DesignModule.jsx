@@ -28,14 +28,16 @@ const DesignModule = () => {
   const [activeRdSection, setActiveRdSection] = useState('AR');
 
   const [rdSheets, setRdSheets] = useState([
-    { id: 1, section: 'AR', number: 1, name: 'Общие данные', pdfLink: '#', pdfFilename: '01-AR_Sheet_1.pdf', dwgLink: '#', dwgFilename: '01-AR_Sheet_1.dwg', revision: 0, comments: [] },
-    { id: 2, section: 'AR', number: 2, name: 'План на отм. 0.000', pdfLink: '#', pdfFilename: '01-AR_Sheet_2_rev0.pdf', dwgLink: null, dwgFilename: null, revision: 0, comments: [{ text: 'Уточнить привязку осей', author: 'Заказчик', resolved: false }] },
+    { id: 1, section: 'AR', number: 1, name: 'Общие данные', pdfLink: 'dummy', pdfFilename: '01-AR_Sheet_1.pdf', dwgLink: 'dummy', dwgFilename: '01-AR_Sheet_1.dwg', revision: 0, comments: [] },
+    { id: 2, section: 'AR', number: 2, name: 'План на отм. 0.000', pdfLink: 'dummy', pdfFilename: '01-AR_Sheet_2_rev0.pdf', dwgLink: null, dwgFilename: null, revision: 0, comments: [{ text: 'Уточнить привязку осей', author: 'Заказчик', resolved: false }] },
     { id: 3, section: 'AR', number: 3, name: 'Разрез 1-1', pdfLink: null, pdfFilename: null, dwgLink: null, dwgFilename: null, revision: 0, comments: [] }
   ]);
 
   const [uploadTarget, setUploadTarget] = useState({ sheetId: null, type: null }); // type: 'pdf' or 'dwg'
 
-  const handleFileClick = (sheetId, type) => {
+  const handleFileClick = (e, sheetId, type) => {
+    e.preventDefault();
+    e.stopPropagation();
     setUploadTarget({ sheetId, type });
     fileInputRef.current.click();
   };
@@ -91,7 +93,8 @@ const DesignModule = () => {
     e.target.value = null;
   };
 
-  const addComment = (sheetId) => {
+  const addComment = (e, sheetId) => {
+    e.preventDefault();
     const text = prompt("Введите замечание к листу:");
     if (text) {
       setRdSheets(prev => prev.map(s => 
@@ -100,7 +103,8 @@ const DesignModule = () => {
     }
   };
 
-  const resolveComment = (sheetId, commentIndex) => {
+  const resolveComment = (e, sheetId, commentIndex) => {
+    e.preventDefault();
     setRdSheets(prev => prev.map(s => {
       if (s.id === sheetId) {
         const newComments = [...s.comments];
@@ -144,7 +148,7 @@ const DesignModule = () => {
         ref={fileInputRef} 
         style={{ display: 'none' }} 
         onChange={handleFileChange} 
-        accept="application/pdf,image/*" 
+        accept="application/pdf,image/*,.dwg,.dxf" 
       />
 
       <div style={{ padding: '16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', gap: '20px' }}>
@@ -186,7 +190,7 @@ const DesignModule = () => {
               <h3>Ведомость рабочих чертежей основного комплекта: 01-{activeRdSection}</h3>
             </div>
             {role === 'designer' && (
-              <button style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', display: 'flex', gap: '8px', cursor: 'pointer' }}>
+              <button onClick={(e) => e.preventDefault()} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', display: 'flex', gap: '8px', cursor: 'pointer' }}>
                 <Upload size={16}/> Умная загрузка (PDF)
               </button>
             )}
@@ -216,18 +220,18 @@ const DesignModule = () => {
                   <td style={{ padding: '12px 10px' }}>
                     {sheet.pdfLink ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <a href={sheet.pdfLink} target="_blank" rel="noreferrer" style={{ color: '#e74c3c', display: 'flex', gap: '6px', alignItems: 'center', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold' }}>
+                        <a href={sheet.pdfLink === 'dummy' ? undefined : sheet.pdfLink} target="_blank" rel="noreferrer" style={{ color: '#e74c3c', display: 'flex', gap: '6px', alignItems: 'center', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold', cursor: sheet.pdfLink === 'dummy' ? 'default' : 'pointer' }}>
                           <CheckCircle2 size={14} color="#27ae60"/> {sheet.pdfFilename}
                         </a>
                         {role === 'designer' && (
-                          <button onClick={() => handleFileClick(sheet.id, 'pdf')} style={{ fontSize: '10px', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'transparent', cursor: 'pointer', width: 'fit-content' }}>Заменить PDF</button>
+                          <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '10px', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'transparent', cursor: 'pointer', width: 'fit-content' }}>Заменить PDF</button>
                         )}
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Нет PDF</span>
                         {role === 'designer' && (
-                          <button onClick={() => handleFileClick(sheet.id, 'pdf')} style={{ fontSize: '10px', padding: '4px 8px', border: 'none', borderRadius: '4px', backgroundColor: '#e74c3c', color: 'white', cursor: 'pointer', width: 'fit-content' }}>Загрузить PDF</button>
+                          <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '10px', padding: '4px 8px', border: 'none', borderRadius: '4px', backgroundColor: '#e74c3c', color: 'white', cursor: 'pointer', width: 'fit-content' }}>Загрузить PDF</button>
                         )}
                       </div>
                     )}
@@ -237,18 +241,18 @@ const DesignModule = () => {
                   <td style={{ padding: '12px 10px' }}>
                     {sheet.dwgLink ? (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                        <a href={sheet.dwgLink} target="_blank" rel="noreferrer" style={{ color: '#2980b9', display: 'flex', gap: '6px', alignItems: 'center', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold' }}>
+                        <a href={sheet.dwgLink === 'dummy' ? undefined : sheet.dwgLink} target="_blank" rel="noreferrer" style={{ color: '#2980b9', display: 'flex', gap: '6px', alignItems: 'center', textDecoration: 'none', fontSize: '12px', fontWeight: 'bold', cursor: sheet.dwgLink === 'dummy' ? 'default' : 'pointer' }}>
                           <CheckCircle2 size={14} color="#27ae60"/> {sheet.dwgFilename}
                         </a>
                         {role === 'designer' && (
-                          <button onClick={() => handleFileClick(sheet.id, 'dwg')} style={{ fontSize: '10px', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'transparent', cursor: 'pointer', width: 'fit-content' }}>Заменить DWG</button>
+                          <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '10px', padding: '4px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'transparent', cursor: 'pointer', width: 'fit-content' }}>Заменить DWG</button>
                         )}
                       </div>
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                         <span style={{ color: '#e67e22', fontSize: '12px' }}>Ожидается DWG</span>
                         {role === 'designer' && (
-                          <button onClick={() => handleFileClick(sheet.id, 'dwg')} style={{ fontSize: '10px', padding: '4px 8px', border: 'none', borderRadius: '4px', backgroundColor: '#2980b9', color: 'white', cursor: 'pointer', width: 'fit-content' }}>Загрузить DWG</button>
+                          <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '10px', padding: '4px 8px', border: 'none', borderRadius: '4px', backgroundColor: '#2980b9', color: 'white', cursor: 'pointer', width: 'fit-content' }}>Загрузить DWG</button>
                         )}
                       </div>
                     )}
@@ -262,7 +266,7 @@ const DesignModule = () => {
                           <div key={idx} style={{ padding: '6px', backgroundColor: c.resolved ? 'rgba(39, 174, 96, 0.1)' : 'rgba(231, 76, 60, 0.1)', borderLeft: `2px solid ${c.resolved ? '#27ae60' : '#e74c3c'}`, borderRadius: '0 4px 4px 0', fontSize: '11px' }}>
                             <strong>{c.author}:</strong> {c.text}
                             {!c.resolved && role === 'designer' && (
-                              <button onClick={() => resolveComment(sheet.id, idx)} style={{ marginTop: '4px', padding: '2px 6px', fontSize: '10px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', display: 'block' }}>Ответить / Исправлено</button>
+                              <button onClick={(e) => resolveComment(e, sheet.id, idx)} style={{ marginTop: '4px', padding: '2px 6px', fontSize: '10px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer', display: 'block' }}>Ответить / Исправлено</button>
                             )}
                             {c.resolved && <span style={{ color: '#27ae60', display: 'block', marginTop: '2px' }}>✓ Исправлено</span>}
                           </div>
@@ -272,7 +276,7 @@ const DesignModule = () => {
                       <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>Нет замечаний</span>
                     )}
                     {role === 'client' && (sheet.pdfLink || sheet.dwgLink) && (
-                      <button onClick={() => addComment(sheet.id)} style={{ marginTop: '8px', padding: '4px 8px', fontSize: '11px', display: 'flex', gap: '4px', alignItems: 'center', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}>
+                      <button onClick={(e) => addComment(e, sheet.id)} style={{ marginTop: '8px', padding: '4px 8px', fontSize: '11px', display: 'flex', gap: '4px', alignItems: 'center', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer' }}>
                         <MessageSquare size={12}/> Замечание
                       </button>
                     )}
