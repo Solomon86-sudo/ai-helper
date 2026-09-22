@@ -28,7 +28,7 @@ app.add_middleware(
 # Для использования локальной Ollama: AI_BASE_URL=http://localhost:11434/v1, AI_API_KEY=ollama
 AI_BASE_URL = os.getenv("AI_BASE_URL", "https://api.groq.com/openai/v1")
 AI_API_KEY = os.getenv("AI_API_KEY", "groq") # Нужен реальный ключ от Groq
-AI_MODEL = os.getenv("AI_MODEL", "llama-3.1-70b-versatile") 
+AI_MODEL = os.getenv("AI_MODEL", "llama3-70b-8192") 
 
 try:
     http_client = httpx.AsyncClient(proxy=None, trust_env=False)
