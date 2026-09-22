@@ -207,6 +207,12 @@ async def chat_with_agent(req: ChatRequest):
         return {"reply": "API клиент ИИ не инициализирован. Запустите Ollama или укажите ключ.", "source": "Система"}
 
 
+@app.get("/api/models")
+async def list_models():
+    if client:
+        return await client.models.list()
+    return {"error": "no client"}
+
 @app.post("/api/audit")
 async def audit_document(file: UploadFile = File(...)):
     """
