@@ -63,27 +63,30 @@ async def chat_with_agent(req: ChatRequest):
     """
     # 1. Поиск в Векторной базе
     rag_context = ""
-    try:
-        results = search_norms(req.message)
-        if results and results['documents'] and len(results['documents'][0]) > 0:
-            rag_context = "Найденные нормативы из локальной базы:\n" + "\n---\n".join(results['documents'][0])
-        else:
-            rag_context = "В локальной базе нормативов ничего не найдено."
-    except Exception as e:
-        logging.warning(f"ChromaDB error: {e}")
-        rag_context = "Локальная база нормативов недоступна."
-
-    # 2. Поиск в Интернете по доверенным сайтам
     web_context = ""
-    try:
-        web_text = await get_web_context(req.message)
-        if web_text:
-            web_context = "Найденные актуальные нормативы в ИНТЕРНЕТЕ (строго отдавай им приоритет, если они новее локальной базы):\n" + web_text
-        else:
-            web_context = "В интернете на доверенных сайтах точного ответа не найдено."
-    except Exception as e:
-        logging.warning(f"Web search error: {e}")
-        web_context = "Поиск в интернете временно недоступен."
+    is_audit = len(req.message) > 500 or "AI-аудитор" in req.message
+    
+    if not is_audit:
+        try:
+            results = search_norms(req.message)
+            if results and results['documents'] and len(results['documents'][0]) > 0:
+                rag_context = "Найденные нормативы из локальной базы:\n" + "\n---\n".join(results['documents'][0])
+            else:
+                rag_context = "В локальной базе нормативов ничего не найдено."
+        except Exception as e:
+            logging.warning(f"ChromaDB error: {e}")
+            rag_context = "Локальная база нормативов недоступна."
+
+        # 2. Поиск в Интернете по доверенным сайтам
+        try:
+            web_text = await get_web_context(req.message)
+            if web_text:
+                web_context = "Найденные актуальные нормативы в ИНТЕРНЕТЕ (строго отдавай им приоритет, если они новее локальной базы):\n" + web_text
+            else:
+                web_context = "В интернете на доверенных сайтах точного ответа не найдено."
+        except Exception as e:
+            logging.warning(f"Web search error: {e}")
+            web_context = "Поиск в интернете временно недоступен."
 
     system_prompt = f"""Ты — профессиональный ИИ-консультант по градостроительному нормированию Санкт-Петербурга и Ленинградской области.
 
