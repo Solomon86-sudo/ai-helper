@@ -69,9 +69,13 @@ ${extractedText}
         body: JSON.stringify({ message: prompt })
       });
       
-      if (res.ok) {
-        const data = await res.json();
-        const text = data.reply || '';
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `HTTP error ${res.status}`);
+      }
+      
+      const data = await res.json();
+      const text = data.reply || '';
         
         let aiRemarks = [];
         try {
@@ -95,10 +99,10 @@ ${extractedText}
             s.id === sheetId ? { ...s, remarks: [...s.remarks, ...aiRemarks] } : s
           ));
         }
-      }
     } catch (err) {
-      console.warn("AI backend error, retrying in 30s (cold start):", err);
-      if (!isRetry) {
+      console.warn("AI backend error:", err);
+      const errMsg = err.message || "Неизвестная ошибка";
+      if (!isRetry && errMsg.includes("Failed to fetch")) {
         setRdSheets(prev => prev.map(s =>
           s.id === sheetId ? { ...s, remarks: [...s.remarks, { text: '⏳ AI-сервер просыпается (~30 сек). Повторная проверка запущена...', author: 'Система', severity: 'minor', resolved: false, response: null, isTemp: true }] } : s
         ));
@@ -110,7 +114,7 @@ ${extractedText}
         }, 30000);
       } else {
         setRdSheets(prev => prev.map(s =>
-          s.id === sheetId ? { ...s, remarks: [...s.remarks, { text: 'AI-сервер недоступен. Проверьте Render.', author: 'Система', severity: 'minor', resolved: false, response: null }] } : s
+          s.id === sheetId ? { ...s, remarks: [...s.remarks, { text: `Ошибка ИИ: ${errMsg}`, author: 'Система', severity: 'minor', resolved: false, response: null }] } : s
         ));
       }
     }
