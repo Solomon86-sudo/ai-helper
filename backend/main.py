@@ -42,14 +42,16 @@ except Exception as e:
     client = None
 
 # --- Добавление ERP Роутеров ---
-from routers import predev, design, commerce, construction, budget, schedule
+from routers import predev, design
+# Остальные роутеры пока отключены (незакончены схемы):
+# from routers import commerce, construction, budget, schedule
 
 app.include_router(predev.router)
 app.include_router(design.router)
-app.include_router(commerce.router)
-app.include_router(construction.router)
-app.include_router(budget.router)
-app.include_router(schedule.router)
+# app.include_router(commerce.router)
+# app.include_router(construction.router)
+# app.include_router(budget.router)
+# app.include_router(schedule.router)
 class ChatRequest(BaseModel):
     message: str
     context: Optional[str] = None
