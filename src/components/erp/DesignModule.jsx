@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import { Upload, FileText, CheckCircle2, ShieldAlert, Users, FolderOpen, FileCheck, Layers, MessageSquare, AlertTriangle, Loader } from 'lucide-react';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://facade-backend.onrender.com';
+const API_URL = import.meta.env.VITE_API_URL || 'https://ai-helper-backend-2u9t.onrender.com';
 
 const DesignModule = () => {
   const [role, setRole] = useState('designer');
