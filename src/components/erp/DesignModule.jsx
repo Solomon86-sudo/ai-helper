@@ -214,14 +214,11 @@ ${extractedText}
             return [...otherSections, ...newSheets];
           });
           
-          // Запускаем проверку всего тома (по частям)
-          newSheets.forEach((sheet, idx) => {
-            setTimeout(() => {
-              // Имитируем extracted_text, так как мы распарсили только ведомость
-              // В идеале мы бы извлекали текст всего тома
-              runRealAICheck(sheet.id, sheet.section, sheet.name, sheet.pdfFilename, sheet.dwgFilename, "Текст загружен из общего PDF тома.");
-            }, idx * 1000);
-          });
+          // Сохраняем извлеченный текст тома в состояние для последующей проверки
+          setTomeExtractedText(json.extracted_text || "");
+          
+          // Убираем заглушку чтения
+          setRdSheets(prev => prev.map((s, i) => i === 0 ? { ...s, remarks: [] } : s));
         }
       } else {
         const errData = await res.json().catch(() => ({}));
@@ -229,11 +226,20 @@ ${extractedText}
       }
     } catch (err) {
       console.warn("Parse tome error:", err);
-      // Убираем статус загрузки и показываем ошибку
       setRdSheets(prev => prev.map((s, i) => i === 0 ? { ...s, remarks: [{ text: `Ошибка при чтении тома: ${err.message}`, author: 'Система', severity: 'minor', resolved: false, response: null }] } : s));
     }
     
     e.target.value = null;
+  };
+
+  // Функция для ручного запуска проверки всех листов текущего раздела
+  const handleRunSectionAudit = () => {
+    const sectionSheets = rdSheets.filter(s => s.section === activeRdSection);
+    sectionSheets.forEach((sheet, idx) => {
+      setTimeout(() => {
+        runRealAICheck(sheet.id, sheet.section, sheet.name, sheet.pdfFilename, sheet.dwgFilename, tomeExtractedText || "Текст не извлечен или пуст.");
+      }, idx * 1500); // 1.5 сек интервал, чтобы не заспамить API
+    });
   };
 
   // ====== Tome upload (entire section as DWG) ======
@@ -375,6 +381,9 @@ ${extractedText}
               </div>
               {role === 'designer' && (
                 <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={(e) => { e.preventDefault(); handleRunSectionAudit(); }} style={{ padding: '8px 14px', backgroundColor: '#8e44ad', color: 'white', border: 'none', borderRadius: '4px', display: 'flex', gap: '6px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '12px' }}>
+                    <AlertTriangle size={14}/> Запустить AI-Аудит
+                  </button>
                   <button onClick={(e) => { e.preventDefault(); tomeInputRef.current.click(); }} style={{ padding: '8px 14px', backgroundColor: '#e74c3c', color: 'white', border: 'none', borderRadius: '4px', display: 'flex', gap: '6px', cursor: 'pointer', whiteSpace: 'nowrap', fontSize: '12px' }}>
                     <Upload size={14}/> Том PDF
                   </button>
