@@ -180,23 +180,54 @@ ${extractedText}
   };
 
   // ====== Tome upload (entire section as PDF) ======
-  const handleTomeUpload = (e) => {
+  const handleTomeUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     
-    const sectionSheets = rdSheets.filter(s => s.section === activeRdSection);
-    sectionSheets.forEach((sheet, idx) => {
-      setTimeout(() => {
-        const link = URL.createObjectURL(file);
-        setRdSheets(prev => prev.map(s => {
-          if (s.id === sheet.id) {
-            return { ...s, pdfLink: link, pdfFilename: `${activeRdSection}_лист${idx+1}.pdf` };
-          }
-          return s;
-        }));
-        runRealAICheck(sheet.id, sheet.section, sheet.name, `${activeRdSection}_лист${idx+1}.pdf`, sheet.dwgFilename);
-      }, idx * 800);
-    });
+    // Показываем индикатор загрузки (временная заглушка для первого листа)
+    setRdSheets(prev => prev.map((s, i) => i === 0 ? { ...s, remarks: [{ text: '⏳ AI читает ведомость чертежей...', author: 'Система', severity: 'minor', resolved: false, response: null }] } : s));
+
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    try {
+      const res = await fetch(`${API_URL}/api/erp/design/parse_tome`, { method: 'POST', body: formData });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.sheets && json.sheets.length > 0) {
+          const link = URL.createObjectURL(file);
+          // Полностью заменяем листы в этом разделе
+          const newSheets = json.sheets.map(sh => ({
+            id: `${activeRdSection}${sh.sheet_number}`,
+            section: activeRdSection,
+            name: sh.name,
+            rev: 0,
+            pdfFilename: `${activeRdSection}_лист${sh.sheet_number}.pdf`,
+            pdfLink: link,
+            dwgFilename: '-',
+            dwgLink: null,
+            remarks: []
+          }));
+          
+          setRdSheets(prev => {
+            const otherSections = prev.filter(s => s.section !== activeRdSection);
+            return [...otherSections, ...newSheets];
+          });
+          
+          // Запускаем проверку всего тома (по частям)
+          newSheets.forEach((sheet, idx) => {
+            setTimeout(() => {
+              // Имитируем extracted_text, так как мы распарсили только ведомость
+              // В идеале мы бы извлекали текст всего тома
+              runRealAICheck(sheet.id, sheet.section, sheet.name, sheet.pdfFilename, sheet.dwgFilename, "Текст загружен из общего PDF тома.");
+            }, idx * 1000);
+          });
+        }
+      }
+    } catch (err) {
+      console.warn("Parse tome error:", err);
+    }
+    
     e.target.value = null;
   };
 

@@ -213,6 +213,57 @@ async def list_models():
         return await client.models.list()
     return {"error": "no client"}
 
+@app.post("/api/erp/design/parse_tome")
+async def parse_tome(file: UploadFile = File(...)):
+    """
+    Парсит PDF-том, извлекает текст (PyMuPDF) и с помощью ИИ
+    находит Ведомость рабочих чертежей, возвращая массив листов.
+    """
+    file_bytes = await file.read()
+    extracted_text = ""
+    if file.filename.lower().endswith(".pdf"):
+        try:
+            import fitz
+            doc = fitz.open(stream=file_bytes, filetype="pdf")
+            for page in doc[:5]: # Смотрим первые 5 страниц
+                extracted_text += page.get_text("text") + "\n"
+        except Exception as e:
+            logging.error(f"PyMuPDF error in parse_tome: {e}")
+            
+    if not extracted_text:
+        return {"sheets": []}
+
+    prompt = f"""Найди в тексте ниже "Ведомость рабочих чертежей основного комплекта" (или аналогичный список листов/чертежей).
+Выдай результат СТРОГО в виде JSON массива объектов:
+[
+  {{"sheet_number": "1", "name": "Общие данные"}},
+  {{"sheet_number": "2", "name": "Разбивочный план"}}
+]
+Больше никакого текста, только чистый JSON. Если ведомости нет, верни пустой массив [].
+ТЕКСТ:
+{extracted_text[:4000]}"""
+
+    if client:
+        try:
+            res = await client.chat.completions.create(
+                model=AI_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
+                max_tokens=1000
+            )
+            text = res.choices[0].message.content.strip()
+            # Извлекаем JSON
+            import re
+            json_match = re.search(r'\[.*\]', text, re.DOTALL)
+            if json_match:
+                import json
+                sheets = json.loads(json_match.group(0))
+                return {"sheets": sheets}
+        except Exception as e:
+            logging.error(f"AI Parse Tome Error: {e}")
+
+    return {"sheets": []}
+
 @app.post("/api/audit")
 async def audit_document(file: UploadFile = File(...)):
     """
