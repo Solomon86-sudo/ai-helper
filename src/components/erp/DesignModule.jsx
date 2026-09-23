@@ -223,9 +223,14 @@ ${extractedText}
             }, idx * 1000);
           });
         }
+      } else {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error(errData.detail || `HTTP error ${res.status}`);
       }
     } catch (err) {
       console.warn("Parse tome error:", err);
+      // Убираем статус загрузки и показываем ошибку
+      setRdSheets(prev => prev.map((s, i) => i === 0 ? { ...s, remarks: [{ text: `Ошибка при чтении тома: ${err.message}`, author: 'Система', severity: 'minor', resolved: false, response: null }] } : s));
     }
     
     e.target.value = null;
