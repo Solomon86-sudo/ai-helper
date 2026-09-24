@@ -258,11 +258,76 @@ async def parse_tome(file: UploadFile = File(...)):
             if json_match:
                 import json
                 sheets = json.loads(json_match.group(0))
-                return {"sheets": sheets}
+                return {"sheets": sheets, "extracted_text": extracted_text}
         except Exception as e:
             logging.error(f"AI Parse Tome Error: {e}")
 
-    return {"sheets": []}
+    return {"sheets": [], "extracted_text": extracted_text}
+
+@app.post("/api/erp/design/parse_composition")
+async def parse_composition(file: UploadFile = File(...)):
+    """
+    Парсит файл состава проекта (Excel или PDF) и извлекает список разделов.
+    """
+    file_bytes = await file.read()
+    extracted_text = ""
+    
+    filename_lower = file.filename.lower()
+    if filename_lower.endswith(".pdf"):
+        try:
+            import fitz
+            doc = fitz.open(stream=file_bytes, filetype="pdf")
+            for page in doc[:10]:
+                extracted_text += page.get_text("text") + "\n"
+        except Exception as e:
+            logging.error(f"PyMuPDF error in parse_composition: {e}")
+    elif filename_lower.endswith((".xls", ".xlsx")):
+        try:
+            import openpyxl
+            import io
+            wb = openpyxl.load_workbook(filename=io.BytesIO(file_bytes), data_only=True)
+            for sheet in wb.worksheets:
+                for row in sheet.iter_rows(values_only=True):
+                    row_text = " ".join([str(cell) for cell in row if cell is not None])
+                    if row_text.strip():
+                        extracted_text += row_text + "\n"
+        except Exception as e:
+            logging.error(f"openpyxl error in parse_composition: {e}")
+
+    if not extracted_text.strip():
+        return {"sections": []}
+
+    prompt = f"""Найди в тексте ниже список разделов/марок рабочей документации (Состав проекта).
+Выдай результат СТРОГО в виде JSON массива объектов:
+[
+  {{"id": "GP", "name": "Генеральный план"}},
+  {{"id": "AR", "name": "Архитектурные решения"}},
+  {{"id": "KZh", "name": "Конструкции железобетонные"}}
+]
+В поле 'id' укажи латинский шифр марки (например GP, AR, KR, VK, OV, EOM, SS). В 'name' — полное название и шифр (например "ГП - Генеральный план").
+Больше никакого текста, только чистый JSON. Если разделов нет, верни пустой массив [].
+ТЕКСТ:
+{extracted_text[:4000]}"""
+
+    if client:
+        try:
+            res = await client.chat.completions.create(
+                model=AI_MODEL,
+                messages=[{"role": "user", "content": prompt}],
+                temperature=0,
+                max_tokens=1000
+            )
+            text = res.choices[0].message.content.strip()
+            import re
+            import json
+            json_match = re.search(r'\[.*\]', text, re.DOTALL)
+            if json_match:
+                sections = json.loads(json_match.group(0))
+                return {"sections": sections}
+        except Exception as e:
+            logging.error(f"AI Parse Composition Error: {e}")
+
+    return {"sections": []}
 
 @app.post("/api/audit")
 async def audit_document(file: UploadFile = File(...)):

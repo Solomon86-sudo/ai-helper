@@ -13,7 +13,7 @@ const DesignModule = () => {
   const tomeDwgInputRef = useRef(null);
 
   // --- РД State ---
-  const [rdStructure] = useState([
+  const [rdStructure, setRdStructure] = useState([
     { id: 'GP', name: 'ГП - Генеральный план' },
     { id: 'AR', name: 'АР - Архитектурные решения' },
     { id: 'KZh', name: 'КЖ - Конструкции железобетонные' },
@@ -178,6 +178,35 @@ ${extractedText}
     runRealAICheck(sheetId, sheet.section, sheet.name, newPdf, newDwg, extractedText);
 
     setUploadTarget({ sheetId: null, type: null });
+    e.target.value = null;
+  };
+
+  // ====== Composition upload ======
+  const handleCompositionUpload = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    setCompositionFile(file.name + " (Парсинг...)");
+    
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch(`${API_URL}/api/erp/design/parse_composition`, { method: 'POST', body: formData });
+      if (res.ok) {
+        const json = await res.json();
+        if (json.sections && json.sections.length > 0) {
+          setRdStructure(json.sections);
+          setActiveRdSection(json.sections[0].id);
+          setCompositionFile(file.name);
+        } else {
+          setCompositionFile(file.name + " (Разделы не найдены)");
+        }
+      } else {
+        setCompositionFile(file.name + " (Ошибка сервера)");
+      }
+    } catch (err) {
+      console.warn("Parse composition error:", err);
+      setCompositionFile(file.name + " (Ошибка)");
+    }
     e.target.value = null;
   };
 
@@ -347,9 +376,7 @@ ${extractedText}
         </div>
         {role === 'designer' && (
           <div>
-            <input type="file" id="compositionUpload" style={{ display: 'none' }} accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => {
-              if (e.target.files[0]) setCompositionFile(e.target.files[0].name);
-            }} />
+            <input type="file" id="compositionUpload" style={{ display: 'none' }} accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={handleCompositionUpload} />
             <button onClick={() => document.getElementById('compositionUpload').click()} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center', whiteSpace: 'nowrap' }}>
               <Upload size={16}/> Загрузить шифры (PDF/Word/Excel)
             </button>
