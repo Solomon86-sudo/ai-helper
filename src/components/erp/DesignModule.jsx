@@ -21,6 +21,9 @@ const DesignModule = () => {
   const [activeRdSection, setActiveRdSection] = useState('GP');
   const [tomeExtractedText, setTomeExtractedText] = useState("");
   const [approvedSections, setApprovedSections] = useState([]);
+  const [showManualAdd, setShowManualAdd] = useState(false);
+  const [newSecId, setNewSecId] = useState('');
+  const [newSecName, setNewSecName] = useState('');
 
   const [rdSheets, setRdSheets] = useState([
     { id: 1, section: 'AR', number: 1, name: 'Общие данные', pdfLink: 'uploaded', pdfFilename: '01-AR_Лист1.pdf', dwgLink: 'uploaded', dwgFilename: '01-AR_Лист1.dwg', revision: 0, remarks: [] },
@@ -379,6 +382,47 @@ ${extractedText}
             <input type="file" id="compositionUpload" style={{ display: 'none' }} accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={handleCompositionUpload} />
             <button onClick={() => document.getElementById('compositionUpload').click()} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center', whiteSpace: 'nowrap' }}>
               <Upload size={16}/> Загрузить шифры (PDF/Word/Excel)
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Ручное добавление раздела */}
+      <div style={{ padding: '12px 16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px' }}>
+        {!showManualAdd ? (
+          <button
+            onClick={() => setShowManualAdd(true)}
+            style={{ padding: '8px 16px', backgroundColor: 'transparent', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
+          >
+            + Добавить раздел вручную
+          </button>
+        ) : (
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              placeholder="Шифр тома"
+              value={newSecId}
+              onChange={(e) => setNewSecId(e.target.value)}
+              style={{ padding: '6px 10px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'var(--bg-card)', color: 'var(--text-main)', fontSize: '13px', width: '120px' }}
+            />
+            <input
+              type="text"
+              placeholder="Наименование"
+              value={newSecName}
+              onChange={(e) => setNewSecName(e.target.value)}
+              style={{ padding: '6px 10px', border: '1px solid var(--border-color)', borderRadius: '4px', backgroundColor: 'var(--bg-card)', color: 'var(--text-main)', fontSize: '13px', flex: '1', minWidth: '180px' }}
+            />
+            <button
+              onClick={() => { if (newSecId.trim() && newSecName.trim()) { setRdStructure(prev => [...prev, { id: newSecId, name: newSecName }]); setNewSecId(''); setNewSecName(''); setShowManualAdd(false); } }}
+              style={{ padding: '6px 14px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold' }}
+            >
+              Добавить
+            </button>
+            <button
+              onClick={() => { setShowManualAdd(false); setNewSecId(''); setNewSecName(''); }}
+              style={{ padding: '6px 14px', backgroundColor: 'transparent', color: 'var(--text-main)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', fontSize: '13px' }}
+            >
+              Отмена
             </button>
           </div>
         )}

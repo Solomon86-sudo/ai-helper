@@ -268,12 +268,88 @@ async def parse_tome(file: UploadFile = File(...)):
 @app.post("/api/erp/design/parse_composition")
 async def parse_composition(file: UploadFile = File(...)):
     """
-    Парсит файл состава проекта (Excel или PDF) и извлекает список разделов.
+    Универсальный парсер состава проекта (Excel или PDF).
+    Excel: ИИ определяет номера колонок по маленькому сэмплу, затем Python парсит всё.
+    PDF: ИИ парсит извлечённый текст.
     """
+    import re as _re
     file_bytes = await file.read()
-    extracted_text = ""
-    
     filename_lower = file.filename.lower()
+
+    # ===== EXCEL =====
+    if filename_lower.endswith((".xls", ".xlsx")):
+        try:
+            import openpyxl, io
+            wb = openpyxl.load_workbook(filename=io.BytesIO(file_bytes), data_only=True)
+            all_rows = []
+            for sheet in wb.worksheets:
+                for row in sheet.iter_rows(values_only=True):
+                    cells = [str(c).strip() if c is not None else "" for c in row]
+                    if any(c for c in cells):
+                        all_rows.append(cells)
+            if not all_rows:
+                return {"sections": [], "error": "Excel файл пуст"}
+
+            # Шаг 1 — определяем колонки (ИИ или fallback)
+            cipher_col, name_col = None, None
+            # Сначала пробуем по заголовкам без ИИ
+            for row in all_rows[:15]:
+                for j, cell in enumerate(row):
+                    cl = cell.lower()
+                    if any(k in cl for k in ("шифр", "марка", "обозначение")):
+                        cipher_col = j
+                    if any(k in cl for k in ("наименование", "название", "раздел")):
+                        name_col = j
+                if cipher_col is not None and name_col is not None:
+                    break
+
+            # Если заголовки не нашлись — спрашиваем ИИ по маленькому сэмплу
+            if (cipher_col is None or name_col is None) and client:
+                sample = "\n".join(
+                    f"Row {i}: " + " | ".join(r[:8]) for i, r in enumerate(all_rows[:25])
+                )
+                try:
+                    res = await client.chat.completions.create(
+                        model=AI_MODEL,
+                        messages=[{"role": "user", "content":
+                            "Фрагмент Excel.\nОпредели номера столбцов (с 0) где ШИФР тома "
+                            "(напр. 3/0824-АР0) и НАИМЕНОВАНИЕ (напр. Архитектурные решения).\n"
+                            'Ответь JSON: {"cipher_col": N, "name_col": M}\n\n' + sample
+                        }],
+                        temperature=0, max_tokens=100
+                    )
+                    m = _re.search(r'\{.*\}', res.choices[0].message.content, _re.DOTALL)
+                    if m:
+                        s = json.loads(m.group(0))
+                        cipher_col = s.get("cipher_col", cipher_col)
+                        name_col = s.get("name_col", name_col)
+                except Exception as e:
+                    logging.warning(f"AI column detect fallback: {e}")
+
+            if cipher_col is None: cipher_col = 1
+            if name_col is None:   name_col = 2
+
+            # Шаг 2 — парсим все строки
+            skip = {"none", "шифр", "шифр/лист", "марка", "обозначение",
+                    "наименование", "название", "раздел", ""}
+            sections, seen = [], set()
+            for cells in all_rows:
+                if len(cells) > max(cipher_col, name_col):
+                    cid = cells[cipher_col].strip()
+                    cname = cells[name_col].strip()
+                    if (cid.lower() not in skip and cname.lower() not in skip
+                            and len(cid) > 2 and len(cname) > 3 and cid not in seen):
+                        sections.append({"id": cid, "name": cname})
+                        seen.add(cid)
+            if sections:
+                return {"sections": sections}
+            return {"sections": [], "error": "Не удалось определить шифры"}
+        except Exception as e:
+            logging.error(f"openpyxl error: {e}")
+            return {"sections": [], "error": str(e)}
+
+    # ===== PDF =====
+    extracted_text = ""
     if filename_lower.endswith(".pdf"):
         try:
             import fitz
@@ -281,68 +357,32 @@ async def parse_composition(file: UploadFile = File(...)):
             for page in doc[:10]:
                 extracted_text += page.get_text("text") + "\n"
         except Exception as e:
-            logging.error(f"PyMuPDF error in parse_composition: {e}")
-    elif filename_lower.endswith((".xls", ".xlsx")):
-        try:
-            import openpyxl
-            import io
-            wb = openpyxl.load_workbook(filename=io.BytesIO(file_bytes), data_only=True)
-            sections = []
-            for sheet in wb.worksheets:
-                for row in sheet.iter_rows(values_only=True):
-                    # We assume Cipher is in Column B (index 1) and Name is in Column C (index 2)
-                    # Or Column A and B. Let's just look for two consecutive string cells that look like our data.
-                    # Based on user's screenshot, it's index 1 (Шифр) and index 2 (Наименование)
-                    if len(row) > 2:
-                        cipher = str(row[1]).strip() if row[1] else ""
-                        name = str(row[2]).strip() if row[2] else ""
-                        if cipher and name and cipher.lower() != "none" and name.lower() != "none":
-                            if "шифр" not in cipher.lower() and len(cipher) > 2 and len(name) > 3:
-                                # Looks like a valid row
-                                sections.append({"id": cipher, "name": name})
-            if sections:
-                return {"sections": sections}
-        except Exception as e:
-            logging.error(f"openpyxl error in parse_composition: {e}")
+            logging.error(f"PyMuPDF error: {e}")
 
     if not extracted_text.strip():
-        return {"sections": []}
+        return {"sections": [], "error": "Не удалось извлечь текст из файла"}
 
-    prompt = f"""Найди в тексте ниже полный список томов/разделов рабочей документации (Состав проекта).
-Выдай результат СТРОГО в виде JSON массива объектов:
-[
-  {{"id": "3/0824-AP1", "name": "Архитектурные решения выше 0.000"}},
-  {{"id": "3/0824-AP2.1", "name": "Архитектурные решения. Кровля"}}
-]
-ПРАВИЛА:
-1. В поле 'id' укажи ТОЧНЫЙ шифр тома из текста (например 3/0824-AP1, 3/0824-AP2.1). 
-2. В 'name' — точное наименование этого тома из текста.
-3. НЕ ГРУППИРУЙ разные тома одной марки (например АР1, АР2.1, АР3) в один общий раздел. Абсолютно каждый шифр/том из таблицы (например 3/0824-ГП, 3/0824-КЖ0, 162-19-38-Р-КЖ0-1) должен быть отдельным элементом в массиве JSON.
-4. Выведи ВСЕ найденные тома без исключения (их может быть 50+ штук).
-Больше никакого текста, только чистый JSON. Если разделов нет, верни пустой массив [].
-ТЕКСТ:
-{extracted_text[:15000]}"""
-
+    prompt = (
+        "Найди полный список томов рабочей документации.\n"
+        'JSON: [{"id":"шифр","name":"название"}]\n'
+        "Каждый том — отдельный элемент. Не группируй.\n"
+        f"ТЕКСТ:\n{extracted_text[:6000]}"
+    )
     if client:
         try:
             res = await client.chat.completions.create(
                 model=AI_MODEL,
                 messages=[{"role": "user", "content": prompt}],
-                temperature=0,
-                max_tokens=2000
+                temperature=0, max_tokens=2000
             )
-            text = res.choices[0].message.content.strip()
-            import re
-            import json
-            json_match = re.search(r'\[.*\]', text, re.DOTALL)
-            if json_match:
-                sections = json.loads(json_match.group(0))
-                return {"sections": sections}
+            m = _re.search(r'\[.*\]', res.choices[0].message.content.strip(), _re.DOTALL)
+            if m:
+                return {"sections": json.loads(m.group(0))}
         except Exception as e:
-            logging.error(f"AI Parse Composition Error: {e}")
+            logging.error(f"AI PDF parse error: {e}")
             return {"sections": [], "error": str(e)}
 
-    return {"sections": [], "error": "No client available"}
+    return {"sections": [], "error": "AI клиент не доступен"}
 
 @app.post("/api/audit")
 async def audit_document(file: UploadFile = File(...)):
