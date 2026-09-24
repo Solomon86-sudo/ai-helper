@@ -384,10 +384,10 @@ ${extractedText}
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start' }}>
+      <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
         
         {/* Sidebar: sections */}
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', width: '280px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flex: '1 1 250px', minWidth: '250px', maxWidth: '100%' }}>
           <div style={{ fontSize: '12px', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold', marginBottom: '8px' }}>Состав проекта</div>
           {rdStructure.map(sec => {
             const secSheets = rdSheets.filter(s => s.section === sec.id);
@@ -422,11 +422,11 @@ ${extractedText}
         </div>
 
         {/* Main area */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
+        <div style={{ flex: '3 1 600px', minWidth: '300px', display: 'flex', flexDirection: 'column', gap: '20px' }}>
           
           {/* Header + Tome upload */}
           <div style={{ padding: '20px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-color)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '4px' }}>Форма 1 (ГОСТ Р 21.101-2020)</div>
                 <h3 style={{ margin: 0 }}>Ведомость: 01-{activeRdSection}</h3>
@@ -580,7 +580,7 @@ ${extractedText}
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', height: '100%' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>Проектирование</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'var(--bg-color)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
           <Users size={18} color="var(--text-muted)" />
@@ -596,7 +596,7 @@ ${extractedText}
         </div>
       </div>
       
-      <div style={{ display: 'flex', gap: '10px', borderBottom: '2px solid var(--border-color)', paddingBottom: '10px' }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', borderBottom: '2px solid var(--border-color)', paddingBottom: '10px' }}>
         {[
           { key: 'ird', icon: <FolderOpen size={16} />, label: '1. ИРД и ТЗ' },
           { key: 'stage_p', icon: <Layers size={16} />, label: '2. Стадия П' },

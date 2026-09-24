@@ -384,3 +384,33 @@ body {
   font-size: 0.875rem;
   color: var(--text-muted);
 }
+
+@media (max-width: 768px) {
+  .app-container {
+    flex-direction: column;
+  }
+  .sidebar {
+    width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    height: auto;
+    border-right: none;
+    border-bottom: 1px solid var(--border-color);
+  }
+  .sidebar-title {
+    width: 100%;
+    margin-bottom: 12px;
+  }
+  .sidebar nav {
+    flex-direction: row !important;
+    flex-wrap: wrap;
+    gap: 8px;
+    width: 100%;
+  }
+  .nav-item {
+    width: auto;
+    flex: 1 1 auto;
+    white-space: nowrap;
+    justify-content: center;
+  }
+}
