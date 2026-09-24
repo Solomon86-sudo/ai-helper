@@ -19,6 +19,7 @@ const DesignModule = () => {
     { id: 'KZh', name: 'КЖ - Конструкции железобетонные' },
   ]);
   const [activeRdSection, setActiveRdSection] = useState('GP');
+  const [tomeExtractedText, setTomeExtractedText] = useState("");
 
   const [rdSheets, setRdSheets] = useState([
     { id: 1, section: 'AR', number: 1, name: 'Общие данные', pdfLink: 'uploaded', pdfFilename: '01-AR_Лист1.pdf', dwgLink: 'uploaded', dwgFilename: '01-AR_Лист1.dwg', revision: 0, remarks: [] },
