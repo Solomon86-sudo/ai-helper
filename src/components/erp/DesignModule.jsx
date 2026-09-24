@@ -20,6 +20,7 @@ const DesignModule = () => {
   ]);
   const [activeRdSection, setActiveRdSection] = useState('GP');
   const [tomeExtractedText, setTomeExtractedText] = useState("");
+  const [approvedSections, setApprovedSections] = useState([]);
 
   const [rdSheets, setRdSheets] = useState([
     { id: 1, section: 'AR', number: 1, name: 'Общие данные', pdfLink: 'uploaded', pdfFilename: '01-AR_Лист1.pdf', dwgLink: 'uploaded', dwgFilename: '01-AR_Лист1.dwg', revision: 0, remarks: [] },
@@ -255,6 +256,8 @@ ${extractedText}
       }
       return s;
     }));
+    
+    setApprovedSections(prev => [...new Set([...prev, activeRdSection])]);
   };
 
   // ====== Tome upload (entire section as DWG) ======
@@ -285,6 +288,7 @@ ${extractedText}
       setRdSheets(prev => prev.map(s => 
         s.id === sheetId ? { ...s, remarks: [...s.remarks, { text, author: 'Заказчик', severity: 'major', resolved: false, response: null }] } : s
       ));
+      setApprovedSections(prev => prev.filter(sec => sec !== activeRdSection));
     }
   };
 
@@ -379,7 +383,11 @@ ${extractedText}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '2px' }}>
                   <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: '10px' }}>{uploaded}/{secSheets.length}</span>
-                  {unresolvedCount > 0 && <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: '#e74c3c', color: 'white', borderRadius: '10px' }}>{unresolvedCount} зам.</span>}
+                  {approvedSections.includes(sec.id) ? (
+                    <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: '#27ae60', color: 'white', borderRadius: '10px', display: 'flex', alignItems: 'center', gap: '2px' }}><CheckCircle2 size={10}/> Утв.</span>
+                  ) : unresolvedCount > 0 ? (
+                    <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: '#e74c3c', color: 'white', borderRadius: '10px' }}>{unresolvedCount} зам.</span>
+                  ) : null}
                 </div>
               </button>
             );
