@@ -328,12 +328,14 @@ ${extractedText}
           </span>
         </div>
         {role === 'designer' && (
-          <button onClick={() => {
-            const fn = prompt("Имя файла состава проекта:", "Состав_РД_v1.pdf");
-            if (fn) setCompositionFile(fn);
-          }} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center', whiteSpace: 'nowrap' }}>
-            <Upload size={16}/> Загрузить шифры (PDF/Word)
-          </button>
+          <div>
+            <input type="file" id="compositionUpload" style={{ display: 'none' }} accept=".pdf,.doc,.docx" onChange={(e) => {
+              if (e.target.files[0]) setCompositionFile(e.target.files[0].name);
+            }} />
+            <button onClick={() => document.getElementById('compositionUpload').click()} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center', whiteSpace: 'nowrap' }}>
+              <Upload size={16}/> Загрузить шифры (PDF/Word)
+            </button>
+          </div>
         )}
       </div>
 
@@ -417,51 +419,99 @@ ${extractedText}
                 {rdSheets.filter(s => s.section === activeRdSection).map(sheet => {
                   const unresolvedCount = sheet.remarks.filter(r => !r.resolved).length;
                   return (
-                    <tr key={sheet.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
-                      <td style={{ padding: '10px 8px', fontWeight: 'bold' }}>{sheet.number}</td>
-                      <td style={{ padding: '10px 8px' }}>{sheet.name}</td>
-                      <td style={{ padding: '10px 8px', color: 'var(--text-muted)' }}>{sheet.revision}</td>
+                    <React.Fragment key={sheet.id}>
+                      <tr style={{ borderBottom: sheet.remarks.length > 0 ? 'none' : '1px solid var(--border-color)', backgroundColor: unresolvedCount > 0 ? 'rgba(231,76,60,0.02)' : 'transparent' }}>
+                        <td style={{ padding: '10px 8px', fontWeight: 'bold' }}>{sheet.number}</td>
+                        <td style={{ padding: '10px 8px' }}>{sheet.name}</td>
+                        <td style={{ padding: '10px 8px', color: 'var(--text-muted)' }}>{sheet.revision}</td>
+                        
+                        <td style={{ padding: '10px 8px' }}>
+                          {sheet.pdfLink ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <a href={sheet.pdfLink === 'uploaded' ? undefined : sheet.pdfLink} target="_blank" rel="noreferrer" style={{ color: '#27ae60', fontSize: '12px', display: 'flex', gap: '4px', alignItems: 'center', textDecoration: 'none', cursor: sheet.pdfLink === 'uploaded' ? 'default' : 'pointer' }}>
+                                <CheckCircle2 size={12}/> {sheet.pdfFilename}
+                              </a>
+                              {role === 'designer' && <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '10px', padding: '2px 6px', border: '1px solid var(--border-color)', borderRadius: '3px', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', cursor: 'pointer', width: 'fit-content' }}>Заменить</button>}
+                            </div>
+                          ) : (
+                            role === 'designer' ? (
+                              <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '11px', padding: '4px 10px', border: 'none', borderRadius: '4px', backgroundColor: '#e74c3c', color: 'white', cursor: 'pointer' }}>PDF</button>
+                            ) : <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>—</span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: '10px 8px' }}>
+                          {sheet.dwgLink ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                              <a href={sheet.dwgLink === 'uploaded' ? undefined : sheet.dwgLink} target="_blank" rel="noreferrer" style={{ color: '#27ae60', fontSize: '12px', display: 'flex', gap: '4px', alignItems: 'center', textDecoration: 'none', cursor: sheet.dwgLink === 'uploaded' ? 'default' : 'pointer' }}>
+                                <CheckCircle2 size={12}/> {sheet.dwgFilename}
+                              </a>
+                              {role === 'designer' && <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '10px', padding: '2px 6px', border: '1px solid var(--border-color)', borderRadius: '3px', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', cursor: 'pointer', width: 'fit-content' }}>Заменить</button>}
+                            </div>
+                          ) : (
+                            role === 'designer' ? (
+                              <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '11px', padding: '4px 10px', border: 'none', borderRadius: '4px', backgroundColor: '#2980b9', color: 'white', cursor: 'pointer' }}>DWG</button>
+                            ) : <span style={{ color: '#e67e22', fontSize: '12px' }}>Ожидается</span>
+                          )}
+                        </td>
+
+                        <td style={{ padding: '10px 8px', textAlign: 'center' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                            {unresolvedCount > 0 ? (
+                              <span style={{ backgroundColor: '#e74c3c', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 'bold' }}>{unresolvedCount}</span>
+                            ) : sheet.remarks.length > 0 ? (
+                              <span style={{ backgroundColor: '#27ae60', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '11px' }}>✓</span>
+                            ) : (
+                              <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>—</span>
+                            )}
+                            {role === 'client' && (
+                              <button onClick={(e) => addComment(e, sheet.id)} style={{ padding: '2px 6px', fontSize: '10px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '3px', cursor: 'pointer', color: 'var(--text-color)' }}>
+                                + Зам.
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
                       
-                      <td style={{ padding: '10px 8px' }}>
-                        {sheet.pdfLink ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <a href={sheet.pdfLink === 'uploaded' ? undefined : sheet.pdfLink} target="_blank" rel="noreferrer" style={{ color: '#27ae60', fontSize: '12px', display: 'flex', gap: '4px', alignItems: 'center', textDecoration: 'none', cursor: sheet.pdfLink === 'uploaded' ? 'default' : 'pointer' }}>
-                              <CheckCircle2 size={12}/> {sheet.pdfFilename}
-                            </a>
-                            {role === 'designer' && <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '10px', padding: '2px 6px', border: '1px solid var(--border-color)', borderRadius: '3px', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', cursor: 'pointer', width: 'fit-content' }}>Заменить</button>}
-                          </div>
-                        ) : (
-                          role === 'designer' ? (
-                            <button onClick={(e) => handleFileClick(e, sheet.id, 'pdf')} style={{ fontSize: '11px', padding: '4px 10px', border: 'none', borderRadius: '4px', backgroundColor: '#e74c3c', color: 'white', cursor: 'pointer' }}>PDF</button>
-                          ) : <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>—</span>
-                        )}
-                      </td>
+                      {sheet.remarks.length > 0 && (
+                        <tr style={{ borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--bg-color)' }}>
+                          <td colSpan={6} style={{ padding: '12px 16px', borderLeft: '3px solid #e74c3c' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                              {sheet.remarks.map((rem, idx) => (
+                                <div key={idx} style={{ padding: '10px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '6px' }}>
+                                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '6px' }}>
+                                    <span style={{ fontSize: '11px', fontWeight: 'bold', color: rem.author.includes('AI') ? '#8e44ad' : '#e67e22' }}>{rem.author}</span>
+                                    {rem.severity === 'critical' && <span style={{ fontSize: '9px', padding: '2px 4px', backgroundColor: '#e74c3c', color: 'white', borderRadius: '4px', fontWeight: 'bold' }}>КРИТИЧНО</span>}
+                                    {rem.severity === 'major' && <span style={{ fontSize: '9px', padding: '2px 4px', backgroundColor: '#e67e22', color: 'white', borderRadius: '4px', fontWeight: 'bold' }}>ВАЖНО</span>}
+                                    {rem.severity === 'minor' && <span style={{ fontSize: '9px', padding: '2px 4px', backgroundColor: '#f1c40f', color: 'black', borderRadius: '4px', fontWeight: 'bold' }}>МИНОР</span>}
+                                  </div>
+                                  <div style={{ fontSize: '13px', lineHeight: '1.4', marginBottom: '8px', color: 'var(--text-color)' }}>{rem.text}</div>
+                                  
+                                  {rem.response ? (
+                                    <div style={{ padding: '8px', backgroundColor: 'rgba(39, 174, 96, 0.1)', borderLeft: '3px solid #27ae60', borderRadius: '4px', fontSize: '12px', marginTop: '8px' }}>
+                                      <strong>Ответ подрядчика:</strong> {rem.response}
+                                    </div>
+                                  ) : null}
 
-                      <td style={{ padding: '10px 8px' }}>
-                        {sheet.dwgLink ? (
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                            <a href={sheet.dwgLink === 'uploaded' ? undefined : sheet.dwgLink} target="_blank" rel="noreferrer" style={{ color: '#27ae60', fontSize: '12px', display: 'flex', gap: '4px', alignItems: 'center', textDecoration: 'none', cursor: sheet.dwgLink === 'uploaded' ? 'default' : 'pointer' }}>
-                              <CheckCircle2 size={12}/> {sheet.dwgFilename}
-                            </a>
-                            {role === 'designer' && <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '10px', padding: '2px 6px', border: '1px solid var(--border-color)', borderRadius: '3px', backgroundColor: 'var(--bg-color)', color: 'var(--text-color)', cursor: 'pointer', width: 'fit-content' }}>Заменить</button>}
-                          </div>
-                        ) : (
-                          role === 'designer' ? (
-                            <button onClick={(e) => handleFileClick(e, sheet.id, 'dwg')} style={{ fontSize: '11px', padding: '4px 10px', border: 'none', borderRadius: '4px', backgroundColor: '#2980b9', color: 'white', cursor: 'pointer' }}>DWG</button>
-                          ) : <span style={{ color: '#e67e22', fontSize: '12px' }}>Ожидается</span>
-                        )}
-                      </td>
-
-                      <td style={{ padding: '10px 8px', textAlign: 'center' }}>
-                        {unresolvedCount > 0 ? (
-                          <span style={{ backgroundColor: '#e74c3c', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '11px', fontWeight: 'bold' }}>{unresolvedCount}</span>
-                        ) : sheet.remarks.length > 0 ? (
-                          <span style={{ backgroundColor: '#27ae60', color: 'white', padding: '2px 8px', borderRadius: '10px', fontSize: '11px' }}>✓</span>
-                        ) : (
-                          <span style={{ color: 'var(--text-muted)', fontSize: '11px' }}>—</span>
-                        )}
-                      </td>
-                    </tr>
+                                  <div style={{ display: 'flex', gap: '8px', marginTop: '8px' }}>
+                                    {!rem.resolved && (
+                                      <>
+                                        <button onClick={(e) => respondToRemark(e, sheet.id, idx)} style={{ fontSize: '11px', padding: '4px 12px', backgroundColor: '#3498db', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                                          Ответить / Исправлено
+                                        </button>
+                                        <button onClick={(e) => acceptResponse(e, sheet.id, idx)} style={{ fontSize: '11px', padding: '4px 12px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
+                                          Утвердить (Снять замечание)
+                                        </button>
+                                      </>
+                                    )}
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
@@ -469,69 +519,10 @@ ${extractedText}
           </div>
 
           {/* ====== FULL-WIDTH REMARKS SECTION ====== */}
-          <div style={{ padding: '20px', border: '1px solid var(--border-color)', borderRadius: '8px', backgroundColor: 'var(--bg-color)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-              <h4 style={{ margin: 0 }}>Замечания по разделу 01-{activeRdSection}</h4>
-              {role === 'client' && (
-                <div style={{ display: 'flex', gap: '8px' }}>
-                  {rdSheets.filter(s => s.section === activeRdSection && s.pdfLink).map(sheet => (
-                    <button key={sheet.id} onClick={(e) => addComment(e, sheet.id)} style={{ padding: '4px 10px', fontSize: '11px', display: 'flex', gap: '4px', alignItems: 'center', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '4px', cursor: 'pointer', color: 'var(--text-color)' }}>
-                      <MessageSquare size={12}/> Лист {sheet.number}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {sectionRemarks.length === 0 ? (
-              <div style={{ padding: '20px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
-                Замечания появятся автоматически после загрузки файлов (AI-Аудит) или будут добавлены Заказчиком вручную.
-              </div>
-            ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {sectionRemarks.map((r, globalIdx) => {
-                  const severityColor = r.severity === 'critical' ? '#e74c3c' : r.severity === 'major' ? '#e67e22' : '#f1c40f';
-                  const bgColor = r.resolved ? 'rgba(39,174,96,0.08)' : r.author === 'AI-Аудитор' ? 'rgba(142,68,173,0.08)' : 'rgba(231,76,60,0.08)';
-                  const borderColor = r.resolved ? '#27ae60' : r.author === 'AI-Аудитор' ? '#8e44ad' : '#e74c3c';
-                  
-                  return (
-                    <div key={globalIdx} style={{ padding: '12px 16px', backgroundColor: bgColor, borderLeft: `3px solid ${borderColor}`, borderRadius: '0 6px 6px 0', display: 'flex', gap: '12px', alignItems: 'flex-start' }}>
-                      <span style={{ fontWeight: 'bold', fontSize: '14px', color: 'var(--text-muted)', minWidth: '30px' }}>#{globalIdx + 1}</span>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '4px', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: '11px', padding: '1px 8px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '10px', color: 'var(--text-color)' }}>Лист {r.sheetNumber} — {r.sheetName}</span>
-                          <span style={{ fontSize: '11px', fontWeight: 'bold', color: borderColor }}>{r.author}</span>
-                          {!r.resolved && <span style={{ fontSize: '10px', padding: '1px 6px', backgroundColor: severityColor, color: 'white', borderRadius: '3px' }}>{r.severity === 'critical' ? 'КРИТИЧНО' : r.severity === 'major' ? 'ВАЖНО' : 'МИНОР'}</span>}
-                          {r.resolved && <span style={{ fontSize: '11px', color: '#27ae60', fontWeight: 'bold' }}>✓ Снято</span>}
-                        </div>
-                        <div style={{ fontSize: '13px', color: 'var(--text-color)', lineHeight: '1.5' }}>{r.text}</div>
-                        
-                        {/* Designer response */}
-                        {r.response && (
-                          <div style={{ marginTop: '8px', padding: '8px 12px', backgroundColor: 'rgba(41,128,185,0.1)', borderLeft: '2px solid #2980b9', borderRadius: '0 4px 4px 0', fontSize: '12px' }}>
-                            <strong style={{ color: '#2980b9' }}>Ответ Генпроектировщика:</strong> {r.response}
-                          </div>
-                        )}
-
-                        {/* Action buttons */}
-                        <div style={{ marginTop: '8px', display: 'flex', gap: '6px' }}>
-                          {!r.resolved && role === 'designer' && (
-                            <button onClick={(e) => respondToRemark(e, r.sheetId, r.remarkIdx)} style={{ padding: '4px 10px', fontSize: '11px', backgroundColor: '#2980b9', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                              Ответить / Исправлено
-                            </button>
-                          )}
-                          {r.response && !r.resolved && role === 'client' && (
-                            <button onClick={(e) => acceptResponse(e, r.sheetId, r.remarkIdx)} style={{ padding: '4px 10px', fontSize: '11px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>
-                              Принять ответ
-                            </button>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
+             <button onClick={() => alert('Том утвержден! Все замечания сняты.')} style={{ padding: '10px 20px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>
+               ✓ Утвердить Том (Снять все замечания)
+             </button>
           </div>
         </div>
       </div>
