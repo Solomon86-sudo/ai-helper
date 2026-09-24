@@ -287,11 +287,21 @@ async def parse_composition(file: UploadFile = File(...)):
             import openpyxl
             import io
             wb = openpyxl.load_workbook(filename=io.BytesIO(file_bytes), data_only=True)
+            sections = []
             for sheet in wb.worksheets:
                 for row in sheet.iter_rows(values_only=True):
-                    row_text = " ".join([str(cell) for cell in row if cell is not None])
-                    if row_text.strip():
-                        extracted_text += row_text + "\n"
+                    # We assume Cipher is in Column B (index 1) and Name is in Column C (index 2)
+                    # Or Column A and B. Let's just look for two consecutive string cells that look like our data.
+                    # Based on user's screenshot, it's index 1 (Шифр) and index 2 (Наименование)
+                    if len(row) > 2:
+                        cipher = str(row[1]).strip() if row[1] else ""
+                        name = str(row[2]).strip() if row[2] else ""
+                        if cipher and name and cipher.lower() != "none" and name.lower() != "none":
+                            if "шифр" not in cipher.lower() and len(cipher) > 2 and len(name) > 3:
+                                # Looks like a valid row
+                                sections.append({"id": cipher, "name": name})
+            if sections:
+                return {"sections": sections}
         except Exception as e:
             logging.error(f"openpyxl error in parse_composition: {e}")
 
@@ -311,7 +321,7 @@ async def parse_composition(file: UploadFile = File(...)):
 4. Выведи ВСЕ найденные тома без исключения (их может быть 50+ штук).
 Больше никакого текста, только чистый JSON. Если разделов нет, верни пустой массив [].
 ТЕКСТ:
-{extracted_text[:30000]}"""
+{extracted_text[:15000]}"""
 
     if client:
         try:
@@ -319,7 +329,7 @@ async def parse_composition(file: UploadFile = File(...)):
                 model=AI_MODEL,
                 messages=[{"role": "user", "content": prompt}],
                 temperature=0,
-                max_tokens=4000
+                max_tokens=2000
             )
             text = res.choices[0].message.content.strip()
             import re
