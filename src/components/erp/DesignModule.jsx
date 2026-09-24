@@ -243,6 +243,20 @@ ${extractedText}
     });
   };
 
+  const handleApproveTome = () => {
+    if (!window.confirm(`Вы уверены, что хотите утвердить весь том ${activeRdSection}? Все открытые замечания будут закрыты автоматически.`)) return;
+    
+    setRdSheets(prev => prev.map(s => {
+      if (s.section === activeRdSection) {
+        return {
+          ...s,
+          remarks: s.remarks.map(r => ({ ...r, resolved: true }))
+        };
+      }
+      return s;
+    }));
+  };
+
   // ====== Tome upload (entire section as DWG) ======
   const handleTomeDwgUpload = (e) => {
     const file = e.target.files[0];
@@ -329,11 +343,11 @@ ${extractedText}
         </div>
         {role === 'designer' && (
           <div>
-            <input type="file" id="compositionUpload" style={{ display: 'none' }} accept=".pdf,.doc,.docx" onChange={(e) => {
+            <input type="file" id="compositionUpload" style={{ display: 'none' }} accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={(e) => {
               if (e.target.files[0]) setCompositionFile(e.target.files[0].name);
             }} />
             <button onClick={() => document.getElementById('compositionUpload').click()} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center', whiteSpace: 'nowrap' }}>
-              <Upload size={16}/> Загрузить шифры (PDF/Word)
+              <Upload size={16}/> Загрузить шифры (PDF/Word/Excel)
             </button>
           </div>
         )}
@@ -520,7 +534,7 @@ ${extractedText}
 
           {/* ====== FULL-WIDTH REMARKS SECTION ====== */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '10px' }}>
-             <button onClick={() => alert('Том утвержден! Все замечания сняты.')} style={{ padding: '10px 20px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>
+             <button onClick={handleApproveTome} style={{ padding: '10px 20px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold' }}>
                ✓ Утвердить Том (Снять все замечания)
              </button>
           </div>
