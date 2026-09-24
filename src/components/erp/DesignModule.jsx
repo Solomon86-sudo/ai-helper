@@ -198,7 +198,7 @@ ${extractedText}
           setActiveRdSection(json.sections[0].id);
           setCompositionFile(file.name);
         } else {
-          setCompositionFile(file.name + " (Разделы не найдены)");
+          setCompositionFile(file.name + ` (Ошибка: ${json.error || 'Разделы не найдены'})`);
         }
       } else {
         setCompositionFile(file.name + " (Ошибка сервера)");

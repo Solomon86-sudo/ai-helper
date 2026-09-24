@@ -261,8 +261,9 @@ async def parse_tome(file: UploadFile = File(...)):
                 return {"sheets": sheets, "extracted_text": extracted_text}
         except Exception as e:
             logging.error(f"AI Parse Tome Error: {e}")
+            return {"sheets": [], "extracted_text": extracted_text, "error": str(e)}
 
-    return {"sheets": [], "extracted_text": extracted_text}
+    return {"sheets": [], "extracted_text": extracted_text, "error": "No client available"}
 
 @app.post("/api/erp/design/parse_composition")
 async def parse_composition(file: UploadFile = File(...)):
@@ -329,8 +330,9 @@ async def parse_composition(file: UploadFile = File(...)):
                 return {"sections": sections}
         except Exception as e:
             logging.error(f"AI Parse Composition Error: {e}")
+            return {"sections": [], "error": str(e)}
 
-    return {"sections": []}
+    return {"sections": [], "error": "No client available"}
 
 @app.post("/api/audit")
 async def audit_document(file: UploadFile = File(...)):
