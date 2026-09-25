@@ -189,13 +189,19 @@ export default function ConstructionModule() {
       setPtoVolumes(vols => vols.map(v => v.id === tenderTask.volumeId ? { ...v, status: 'Выдано ТЗ' } : v));
     }
     
+    const docs = [];
+    if (tenderTask.tzFile) docs.push(tenderTask.tzFile);
+    if (tenderTask.vorFile) docs.push(tenderTask.vorFile);
+    if (tenderTask.scheduleFile) docs.push(tenderTask.scheduleFile);
+    if (docs.length === 0) docs.push('ТЗ.pdf', 'Ведомость объемов.pdf'); // fallback mock
+
     const newTender = {
       id: Date.now(),
       name: tenderTask.theme || 'Новый тендер',
       discipline: 'Общестрой', // or derived from task
       status: 'Сбор КП',
       date: new Date().toISOString().split('T')[0],
-      documents: [],
+      documents: docs,
       proposals: []
     };
     
@@ -678,10 +684,37 @@ export default function ConstructionModule() {
             <label style={s.label}>Тема тендера</label>
             <input style={s.input} value={tenderTask.theme} onChange={e => setTenderTask({...tenderTask, theme: e.target.value})} />
             <label style={s.label}>Описание работ</label>
-            <textarea style={{...s.input, minHeight: '80px'}} value={tenderTask.description} onChange={e => setTenderTask({...tenderTask, description: e.target.value})} />
+            <textarea style={{...s.input, minHeight: '80px', marginBottom: '15px'}} value={tenderTask.description} onChange={e => setTenderTask({...tenderTask, description: e.target.value})} />
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginBottom: '20px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', backgroundColor: 'var(--bg-dark)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '13px' }}>{tenderTask.tzFile ? <><FileText size={14} style={{verticalAlign:'middle', marginRight:'5px', color:'var(--accent-blue)'}}/> {tenderTask.tzFile}</> : 'Техническое задание (ТЗ)'}</span>
+                <label style={{ ...s.btnSecondary, margin: 0, cursor: 'pointer' }}>
+                  <Upload size={14}/> Загрузить
+                  <input type="file" style={{ display: 'none' }} onChange={e => setTenderTask({...tenderTask, tzFile: e.target.files[0]?.name})} />
+                </label>
+              </div>
+              
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', backgroundColor: 'var(--bg-dark)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '13px' }}>{tenderTask.vorFile ? <><FileText size={14} style={{verticalAlign:'middle', marginRight:'5px', color:'var(--accent-blue)'}}/> {tenderTask.vorFile}</> : 'Ведомость объемов (ВОР)'}</span>
+                <label style={{ ...s.btnSecondary, margin: 0, cursor: 'pointer' }}>
+                  <Upload size={14}/> Загрузить
+                  <input type="file" style={{ display: 'none' }} onChange={e => setTenderTask({...tenderTask, vorFile: e.target.files[0]?.name})} />
+                </label>
+              </div>
+
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px', backgroundColor: 'var(--bg-dark)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                <span style={{ fontSize: '13px' }}>{tenderTask.scheduleFile ? <><FileText size={14} style={{verticalAlign:'middle', marginRight:'5px', color:'var(--accent-blue)'}}/> {tenderTask.scheduleFile}</> : 'График работ'}</span>
+                <label style={{ ...s.btnSecondary, margin: 0, cursor: 'pointer' }}>
+                  <Upload size={14}/> Загрузить
+                  <input type="file" style={{ display: 'none' }} onChange={e => setTenderTask({...tenderTask, scheduleFile: e.target.files[0]?.name})} />
+                </label>
+              </div>
+            </div>
+
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
               <button style={s.btnSecondary} onClick={() => setShowTenderTaskModal(false)}>Отмена</button>
-              <button style={s.btnPrimary} onClick={handleCreateTenderTask}>Создать</button>
+              <button style={s.btnPrimary} onClick={handleCreateTenderTask}>Создать тендер</button>
             </div>
           </div>
         </div>
