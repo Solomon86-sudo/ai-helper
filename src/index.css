@@ -388,29 +388,61 @@ body {
 @media (max-width: 768px) {
   .app-container {
     flex-direction: column;
+    height: auto;
+    min-height: 100vh;
   }
   .sidebar {
     width: 100%;
     flex-direction: row;
     flex-wrap: wrap;
     height: auto;
+    padding: 8px 10px;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
+    gap: 4px;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    background-color: var(--bg-card);
   }
   .sidebar-title {
-    width: 100%;
-    margin-bottom: 12px;
+    width: auto;
+    margin-bottom: 0;
+    font-size: 1rem;
+    padding: 0 4px;
   }
-  .sidebar nav {
-    flex-direction: row !important;
-    flex-wrap: wrap;
-    gap: 8px;
-    width: 100%;
+  .sidebar-title span {
+    display: none;
   }
   .nav-item {
     width: auto;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     white-space: nowrap;
     justify-content: center;
+    padding: 6px 10px;
+    font-size: 0.8rem;
+    gap: 4px;
+  }
+  .nav-item svg {
+    width: 16px;
+    height: 16px;
+  }
+  .main-content {
+    overflow-y: auto;
+    flex: 1;
+  }
+  .tab-header {
+    padding: 8px 16px 6px;
+    position: static;
+  }
+  .tab-header h1 {
+    font-size: 1.1rem;
+  }
+  .tab-header p {
+    font-size: 0.75rem;
+    display: none;
+  }
+  .tab-body {
+    padding: 12px !important;
   }
 }
