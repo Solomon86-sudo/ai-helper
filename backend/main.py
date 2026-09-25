@@ -281,12 +281,21 @@ async def parse_composition(file: UploadFile = File(...)):
         try:
             import openpyxl, io
             wb = openpyxl.load_workbook(filename=io.BytesIO(file_bytes), data_only=True)
-            all_rows = []
+            
+            # Берём только первый лист (обычно "ведомость чертежей")
+            # Если есть лист с похожим именем — используем его
+            target_sheet = wb.worksheets[0]
             for sheet in wb.worksheets:
-                for row in sheet.iter_rows(values_only=True):
-                    cells = [str(c).strip() if c is not None else "" for c in row]
-                    if any(c for c in cells):
-                        all_rows.append(cells)
+                sn = sheet.title.lower()
+                if any(k in sn for k in ("ведомость", "состав", "перечень", "чертеж")):
+                    target_sheet = sheet
+                    break
+            
+            all_rows = []
+            for row in target_sheet.iter_rows(values_only=True):
+                cells = [str(c).strip() if c is not None else "" for c in row]
+                if any(c for c in cells):
+                    all_rows.append(cells)
             if not all_rows:
                 return {"sections": [], "error": "Excel файл пуст"}
 
@@ -298,7 +307,7 @@ async def parse_composition(file: UploadFile = File(...)):
                     cl = cell.lower()
                     if any(k in cl for k in ("шифр", "марка", "обозначение")):
                         cipher_col = j
-                    if any(k in cl for k in ("наименование", "название", "раздел")):
+                    if any(k in cl for k in ("наименование", "название")):
                         name_col = j
                 if cipher_col is not None and name_col is not None:
                     break
@@ -329,18 +338,28 @@ async def parse_composition(file: UploadFile = File(...)):
             if cipher_col is None: cipher_col = 1
             if name_col is None:   name_col = 2
 
-            # Шаг 2 — парсим все строки
-            skip = {"none", "шифр", "шифр/лист", "марка", "обозначение",
+            # Шаг 2 — парсим все строки с усиленной фильтрацией
+            skip_words = {"none", "шифр", "шифр/лист", "марка", "обозначение",
                     "наименование", "название", "раздел", ""}
+            skip_patterns = {"http", "https", "ссылка", "www.", "disk.", "yandex", "google"}
             sections, seen = [], set()
             for cells in all_rows:
                 if len(cells) > max(cipher_col, name_col):
                     cid = cells[cipher_col].strip()
                     cname = cells[name_col].strip()
-                    if (cid.lower() not in skip and cname.lower() not in skip
-                            and len(cid) > 2 and len(cname) > 3 and cid not in seen):
-                        sections.append({"id": cid, "name": cname})
-                        seen.add(cid)
+                    cid_lower = cid.lower()
+                    cname_lower = cname.lower()
+                    # Пропускаем заголовки и мусор
+                    if cid_lower in skip_words or cname_lower in skip_words:
+                        continue
+                    if any(p in cid_lower for p in skip_patterns) or any(p in cname_lower for p in skip_patterns):
+                        continue
+                    if len(cid) < 3 or len(cname) < 4:
+                        continue
+                    if cid in seen:
+                        continue
+                    sections.append({"id": cid, "name": cname})
+                    seen.add(cid)
             if sections:
                 return {"sections": sections}
             return {"sections": [], "error": "Не удалось определить шифры"}

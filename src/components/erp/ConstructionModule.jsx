@@ -150,6 +150,56 @@ export default function ConstructionModule() {
     }))
   };
 
+  const handleCreateTenderTask = () => {
+    if (tenderTask.volumeId) {
+      setPtoVolumes(vols => vols.map(v => v.id === tenderTask.volumeId ? { ...v, status: 'Выдано ТЗ' } : v));
+    }
+    
+    const newTender = {
+      id: Date.now(),
+      name: tenderTask.theme || 'Новый тендер',
+      discipline: 'Общестрой', // or derived from task
+      status: 'Сбор КП',
+      date: new Date().toISOString().split('T')[0],
+      documents: [],
+      proposals: []
+    };
+    
+    setTenders(prev => [...prev, newTender]);
+    
+    setActiveTab(1);
+    setTenderSubTab(0);
+    
+    setShowTenderTaskModal(false);
+    setTenderTask({ theme: '', description: '', volumeId: null });
+  };
+
+  const handleTransferToSdo = (tender) => {
+    const winner = tender.proposals.find(p => p.status === 'Победитель');
+    if (!winner) {
+      alert('Сначала утвердите победителя тендера!');
+      return;
+    }
+    
+    const newApproval = {
+      id: Date.now(),
+      num: `Д-26-${Math.floor(Math.random() * 900) + 100}`,
+      contractor: winner.contractor,
+      tenderLink: tender.name,
+      sum: winner.sum,
+      status: 'На согласовании',
+      chain: [
+        { role: 'ГИП', name: 'Сидоров А.А.', approved: false },
+        { role: 'Юрист', name: 'Смирнова В.В.', approved: false },
+        { role: 'Финансист', name: 'Кузнецов Б.Б.', approved: false },
+        { role: 'Директор', name: 'Волков Г.Г.', approved: false },
+      ]
+    };
+    setApprovals(prev => [...prev, newApproval]);
+    setActiveTab(2);
+    setSdoSubTab(0);
+  };
+
   return (
     <div style={s.container}>
       <h2 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -282,7 +332,7 @@ export default function ConstructionModule() {
                                 </table>
                                 <div style={{ marginTop: '10px', display: 'flex', gap: '10px' }}>
                                   <button style={s.btnSecondary}><Plus size={16}/> Добавить КП</button>
-                                  <button style={s.btnAction}>Передать в СДО</button>
+                                  <button style={s.btnAction} onClick={() => handleTransferToSdo(t)}>Передать в СДО</button>
                                 </div>
                               </div>
                             </td>
@@ -522,7 +572,7 @@ export default function ConstructionModule() {
             <textarea style={{...s.input, minHeight: '80px'}} value={tenderTask.description} onChange={e => setTenderTask({...tenderTask, description: e.target.value})} />
             <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end', marginTop: '10px' }}>
               <button style={s.btnSecondary} onClick={() => setShowTenderTaskModal(false)}>Отмена</button>
-              <button style={s.btnPrimary} onClick={() => { setShowTenderTaskModal(false); setTenderTask({theme:'', description:'', volumeId: null}); }}>Создать</button>
+              <button style={s.btnPrimary} onClick={handleCreateTenderTask}>Создать</button>
             </div>
           </div>
         </div>
