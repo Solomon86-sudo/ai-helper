@@ -5,7 +5,40 @@ import {
 } from 'lucide-react';
 
 export default function ConstructionModule() {
+  const [isAdmin, setIsAdmin] = useState(false);
   const [activeTab, setActiveTab] = useState(0);
+
+  // === Dynamic Tables State ===
+  const [customTables, setCustomTables] = useState({
+    ptoVolumes: { cols: [], data: {}, customRows: [] },
+    contractors: { cols: [], data: {}, customRows: [] }
+  });
+
+  const handleAddCol = (tableKey) => {
+    const colName = prompt("Введите название новой колонки:");
+    if (!colName) return;
+    setCustomTables(prev => ({
+      ...prev,
+      [tableKey]: { ...prev[tableKey], cols: [...prev[tableKey].cols, colName] }
+    }));
+  };
+
+  const handleAddRow = (tableKey) => {
+    setCustomTables(prev => ({
+      ...prev,
+      [tableKey]: { ...prev[tableKey], customRows: [...prev[tableKey].customRows, { id: `custom_${Date.now()}` }] }
+    }));
+  };
+
+  const handleCustomDataChange = (tableKey, rowId, colName, value) => {
+    setCustomTables(prev => ({
+      ...prev,
+      [tableKey]: {
+        ...prev[tableKey],
+        data: { ...prev[tableKey].data, [`${rowId}_${colName}`]: value }
+      }
+    }));
+  };
 
   // === ТАБ 1: ПТО (Production Technical Department) ===
   const [ptoVolumes, setPtoVolumes] = useState([
@@ -41,7 +74,7 @@ export default function ConstructionModule() {
   ]);
   const [showAddContractorModal, setShowAddContractorModal] = useState(false);
 
-  const [templates] = useState([
+  const [templates, setTemplates] = useState([
     'Договор подряда (типовой)',
     'Договор поставки',
     'Договор на проектирование',
@@ -111,7 +144,8 @@ export default function ConstructionModule() {
     modal: { background: 'var(--bg-card)', padding: '24px', borderRadius: '8px', width: '500px', maxWidth: '90vw', border: '1px solid var(--border-color)' },
     input: { width: '100%', padding: '10px', marginBottom: '15px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', boxSizing: 'border-box' },
     label: { display: 'block', marginBottom: '6px', fontSize: '13px', color: 'var(--text-muted)' },
-    flexRow: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }
+    flexRow: { display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' },
+    customInput: { width: '100%', padding: '6px', background: 'var(--bg-dark)', border: '1px solid var(--border-color)', color: 'var(--text-main)', borderRadius: '4px', boxSizing: 'border-box', fontSize: '13px' }
   };
 
   // Handlers
@@ -202,9 +236,15 @@ export default function ConstructionModule() {
 
   return (
     <div style={s.container}>
-      <h2 style={{ marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '10px' }}>
-        <Briefcase /> Строительный модуль ERP
-      </h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+        <h2 style={{ display: 'flex', alignItems: 'center', gap: '10px', margin: 0 }}>
+          <Briefcase /> Строительный модуль ERP
+        </h2>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', color: 'var(--text-muted)' }}>
+          <input type="checkbox" checked={isAdmin} onChange={e => setIsAdmin(e.target.checked)} />
+          Режим администратора
+        </label>
+      </div>
       
       {/* Main Tabs */}
       <div style={s.tabsHeader}>
@@ -227,6 +267,8 @@ export default function ConstructionModule() {
                 <th style={s.th}>Наименование</th>
                 <th style={s.th}>Статус</th>
                 <th style={s.th}>Действия</th>
+                {customTables.ptoVolumes.cols.map(col => <th key={col} style={s.th}>{col}</th>)}
+                {isAdmin && <th style={{...s.th, width: '40px'}}><button style={s.btnSecondary} onClick={() => handleAddCol('ptoVolumes')}><Plus size={14}/></button></th>}
               </tr>
             </thead>
             <tbody>
@@ -243,9 +285,38 @@ export default function ConstructionModule() {
                       </button>
                     </div>
                   </td>
+                  {customTables.ptoVolumes.cols.map(col => (
+                    <td key={col} style={s.td}>
+                      {isAdmin ? <input style={s.customInput} value={customTables.ptoVolumes.data[`${v.id}_${col}`] || ''} onChange={e => handleCustomDataChange('ptoVolumes', v.id, col, e.target.value)} /> : customTables.ptoVolumes.data[`${v.id}_${col}`] || ''}
+                    </td>
+                  ))}
+                  {isAdmin && <td style={s.td}></td>}
+                </tr>
+              ))}
+              {customTables.ptoVolumes.customRows.map(row => (
+                <tr key={row.id}>
+                  <td style={s.td}>{isAdmin ? <input style={s.customInput} value={customTables.ptoVolumes.data[`${row.id}_shifr`] || ''} onChange={e => handleCustomDataChange('ptoVolumes', row.id, 'shifr', e.target.value)} /> : customTables.ptoVolumes.data[`${row.id}_shifr`] || ''}</td>
+                  <td style={s.td}>{isAdmin ? <input style={s.customInput} value={customTables.ptoVolumes.data[`${row.id}_name`] || ''} onChange={e => handleCustomDataChange('ptoVolumes', row.id, 'name', e.target.value)} /> : customTables.ptoVolumes.data[`${row.id}_name`] || ''}</td>
+                  <td style={s.td}>{isAdmin ? <input style={s.customInput} value={customTables.ptoVolumes.data[`${row.id}_status`] || ''} onChange={e => handleCustomDataChange('ptoVolumes', row.id, 'status', e.target.value)} /> : customTables.ptoVolumes.data[`${row.id}_status`] || ''}</td>
+                  <td style={s.td}></td>
+                  {customTables.ptoVolumes.cols.map(col => (
+                    <td key={col} style={s.td}>
+                      {isAdmin ? <input style={s.customInput} value={customTables.ptoVolumes.data[`${row.id}_${col}`] || ''} onChange={e => handleCustomDataChange('ptoVolumes', row.id, col, e.target.value)} /> : customTables.ptoVolumes.data[`${row.id}_${col}`] || ''}
+                    </td>
+                  ))}
+                  {isAdmin && <td style={s.td}></td>}
                 </tr>
               ))}
             </tbody>
+            {isAdmin && (
+              <tfoot>
+                <tr>
+                  <td colSpan={100} style={s.td}>
+                    <button style={s.btnSecondary} onClick={() => handleAddRow('ptoVolumes')}><Plus size={16}/> Добавить строку</button>
+                  </td>
+                </tr>
+              </tfoot>
+            )}
           </table>
         </div>
       )}
@@ -264,7 +335,6 @@ export default function ConstructionModule() {
             <div style={s.card}>
                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
                  <h3>Открытые и завершенные тендеры</h3>
-                 <button style={s.btnPrimary} onClick={() => setShowAddTenderModal(true)}><Plus size={16}/> Создать тендер</button>
                </div>
                <table style={s.table}>
                   <thead>
@@ -363,6 +433,8 @@ export default function ConstructionModule() {
                       <th style={s.th}>Рейтинг</th>
                       <th style={s.th}>Статус</th>
                       <th style={s.th}>Контакт</th>
+                      {customTables.contractors.cols.map(col => <th key={col} style={s.th}>{col}</th>)}
+                      {isAdmin && <th style={{...s.th, width: '40px'}}><button style={s.btnSecondary} onClick={() => handleAddCol('contractors')}><Plus size={14}/></button></th>}
                     </tr>
                   </thead>
                   <tbody>
@@ -375,9 +447,39 @@ export default function ConstructionModule() {
                         </td>
                         <td style={s.td}><span style={s.status(c.status)}>{c.status}</span></td>
                         <td style={s.td}>{c.contact}</td>
+                        {customTables.contractors.cols.map(col => (
+                          <td key={col} style={s.td}>
+                            {isAdmin ? <input style={s.customInput} value={customTables.contractors.data[`${c.id}_${col}`] || ''} onChange={e => handleCustomDataChange('contractors', c.id, col, e.target.value)} /> : customTables.contractors.data[`${c.id}_${col}`] || ''}
+                          </td>
+                        ))}
+                        {isAdmin && <td style={s.td}></td>}
+                      </tr>
+                    ))}
+                    {customTables.contractors.customRows.map(row => (
+                      <tr key={row.id}>
+                        <td style={s.td}>{isAdmin ? <input style={s.customInput} value={customTables.contractors.data[`${row.id}_name`] || ''} onChange={e => handleCustomDataChange('contractors', row.id, 'name', e.target.value)} placeholder="Наименование" /> : customTables.contractors.data[`${row.id}_name`] || ''}</td>
+                        <td style={s.td}>{isAdmin ? <input style={s.customInput} value={customTables.contractors.data[`${row.id}_tags`] || ''} onChange={e => handleCustomDataChange('contractors', row.id, 'tags', e.target.value)} /> : customTables.contractors.data[`${row.id}_tags`] || ''}</td>
+                        <td style={s.td}>{isAdmin ? <input style={s.customInput} value={customTables.contractors.data[`${row.id}_rating`] || ''} onChange={e => handleCustomDataChange('contractors', row.id, 'rating', e.target.value)} /> : customTables.contractors.data[`${row.id}_rating`] || ''}</td>
+                        <td style={s.td}>{isAdmin ? <input style={s.customInput} value={customTables.contractors.data[`${row.id}_status`] || ''} onChange={e => handleCustomDataChange('contractors', row.id, 'status', e.target.value)} /> : customTables.contractors.data[`${row.id}_status`] || ''}</td>
+                        <td style={s.td}>{isAdmin ? <input style={s.customInput} value={customTables.contractors.data[`${row.id}_contact`] || ''} onChange={e => handleCustomDataChange('contractors', row.id, 'contact', e.target.value)} /> : customTables.contractors.data[`${row.id}_contact`] || ''}</td>
+                        {customTables.contractors.cols.map(col => (
+                          <td key={col} style={s.td}>
+                            {isAdmin ? <input style={s.customInput} value={customTables.contractors.data[`${row.id}_${col}`] || ''} onChange={e => handleCustomDataChange('contractors', row.id, col, e.target.value)} /> : customTables.contractors.data[`${row.id}_${col}`] || ''}
+                          </td>
+                        ))}
+                        {isAdmin && <td style={s.td}></td>}
                       </tr>
                     ))}
                   </tbody>
+                  {isAdmin && (
+                    <tfoot>
+                      <tr>
+                        <td colSpan={100} style={s.td}>
+                          <button style={s.btnSecondary} onClick={() => handleAddRow('contractors')}><Plus size={16}/> Добавить строку</button>
+                        </td>
+                      </tr>
+                    </tfoot>
+                  )}
                </table>
             </div>
           )}
@@ -387,13 +489,20 @@ export default function ConstructionModule() {
             <div style={s.card}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '15px' }}>
                 <h3>Шаблоны документов</h3>
-                <button style={s.btnPrimary}><Upload size={16}/> Загрузить шаблон</button>
+                <label style={{...s.btnPrimary, cursor: 'pointer'}}>
+                  <Upload size={16}/> Загрузить шаблон
+                  <input type="file" style={{display: 'none'}} onChange={(e) => {
+                    if (e.target.files && e.target.files[0]) {
+                      setTemplates([...templates, e.target.files[0].name]);
+                    }
+                  }} />
+                </label>
               </div>
               <ul style={{ listStyle: 'none', padding: 0 }}>
                 {templates.map((tpl, i) => (
                   <li key={i} style={{ display: 'flex', justifyContent: 'space-between', padding: '12px', borderBottom: '1px solid var(--border-color)' }}>
                     <span style={{ display: 'flex', alignItems: 'center', gap: '10px' }}><FileText size={18} color="var(--accent-blue)"/> {tpl}</span>
-                    <button style={s.btnSecondary}><Download size={16}/> Скачать</button>
+                    <button style={s.btnSecondary} onClick={() => alert(`Скачивание файла: ${tpl}`)}><Download size={16}/> Скачать</button>
                   </li>
                 ))}
               </ul>

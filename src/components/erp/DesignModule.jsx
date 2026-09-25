@@ -6,8 +6,29 @@ const API_URL = 'https://ai-helper-backend-2u9t.onrender.com';
 
 const DesignModule = () => {
   const [role, setRole] = useState('designer');
+  const [isAdmin, setIsAdmin] = useState(false);
   const [activeSubTab, setActiveSubTab] = useState('rd');
   
+  // Admin custom columns state
+  const [customColsIrd, setCustomColsIrd] = useState([]);
+  const [customDataIrd, setCustomDataIrd] = useState({});
+  const [customColsRd, setCustomColsRd] = useState([]);
+  const [customDataRd, setCustomDataRd] = useState({});
+
+  const handleAddColumn = (tableType) => {
+    const colName = prompt('Введите название новой колонки:');
+    if (!colName) return;
+    const newCol = { id: `col_${Date.now()}`, title: colName };
+    if (tableType === 'ird') setCustomColsIrd(prev => [...prev, newCol]);
+    if (tableType === 'rd') setCustomColsRd(prev => [...prev, newCol]);
+  };
+
+  const handleCustomDataChange = (tableType, rowId, colId, val) => {
+    const key = `${rowId}_${colId}`;
+    if (tableType === 'ird') setCustomDataIrd(prev => ({ ...prev, [key]: val }));
+    if (tableType === 'rd') setCustomDataRd(prev => ({ ...prev, [key]: val }));
+  };
+
   const fileInputRef = useRef(null);
   const tomeInputRef = useRef(null);
   const tomeDwgInputRef = useRef(null);
@@ -493,7 +514,9 @@ ${extractedText}
               <th style={{ padding: '10px 8px' }}>Тип</th>
               <th style={{ padding: '10px 8px' }}>Сроки</th>
               <th style={{ padding: '10px 8px' }}>Файл / Версия</th>
+              {customColsIrd.map(c => <th key={c.id} style={{ padding: '10px 8px' }}>{c.title}</th>)}
               <th style={{ padding: '10px 8px', width: '100px' }}>Действия</th>
+              {isAdmin && <th style={{ padding: '10px 8px', width: '40px' }}><button onClick={() => handleAddColumn('ird')} style={{ background: 'none', border: '1px dashed var(--text-muted)', color: 'var(--text-main)', cursor: 'pointer', borderRadius: '4px', padding: '4px 8px' }}>+</button></th>}
             </tr>
           </thead>
           <tbody>
@@ -525,6 +548,19 @@ ${extractedText}
                         <span style={{ color: 'var(--text-muted)' }}>Нет файла</span>
                       )}
                     </td>
+                    {customColsIrd.map(col => (
+                      <td key={col.id} style={{ padding: '10px 8px' }}>
+                        {isAdmin ? (
+                          <input 
+                            value={customDataIrd[`${doc.id}_${col.id}`] || ''} 
+                            onChange={e => handleCustomDataChange('ird', doc.id, col.id, e.target.value)} 
+                            style={{ width: '100%', padding: '4px', background: 'transparent', border: '1px dashed var(--border-color)', color: 'var(--text-main)' }} 
+                          />
+                        ) : (
+                          customDataIrd[`${doc.id}_${col.id}`] || ''
+                        )}
+                      </td>
+                    ))}
                     <td style={{ padding: '10px 8px' }}>
                       <div style={{ display: 'flex', gap: '6px', flexDirection: 'column' }}>
                         <label style={{ cursor: 'pointer', padding: '4px 8px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-color)', borderRadius: '4px', textAlign: 'center', fontSize: '11px' }}>
@@ -538,6 +574,7 @@ ${extractedText}
                         )}
                       </div>
                     </td>
+                    {isAdmin && <td></td>}
                   </tr>
                   {expandedIrdDoc === doc.id && doc.archive.length > 0 && (
                     <tr style={{ backgroundColor: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-color)' }}>
@@ -756,6 +793,8 @@ ${extractedText}
                   <th style={{ padding: '10px 8px', width: '150px' }}>PDF</th>
                   <th style={{ padding: '10px 8px', width: '150px' }}>DWG</th>
                   <th style={{ padding: '10px 8px', width: '60px' }}>Зам.</th>
+                  {customColsRd.map(c => <th key={c.id} style={{ padding: '10px 8px' }}>{c.title}</th>)}
+                  {isAdmin && <th style={{ padding: '10px 8px', width: '40px' }}><button onClick={() => handleAddColumn('rd')} style={{ background: 'none', border: '1px dashed var(--text-muted)', color: 'var(--text-main)', cursor: 'pointer', borderRadius: '4px', padding: '4px 8px' }}>+</button></th>}
                 </tr>
               </thead>
               <tbody>
@@ -814,6 +853,20 @@ ${extractedText}
                             )}
                           </div>
                         </td>
+                        {customColsRd.map(col => (
+                          <td key={col.id} style={{ padding: '10px 8px' }}>
+                            {isAdmin ? (
+                              <input 
+                                value={customDataRd[`${sheet.id}_${col.id}`] || ''} 
+                                onChange={e => handleCustomDataChange('rd', sheet.id, col.id, e.target.value)} 
+                                style={{ width: '100%', padding: '4px', background: 'transparent', border: '1px dashed var(--border-color)', color: 'var(--text-main)' }} 
+                              />
+                            ) : (
+                              customDataRd[`${sheet.id}_${col.id}`] || ''
+                            )}
+                          </td>
+                        ))}
+                        {isAdmin && <td></td>}
                       </tr>
                       
                       {sheet.remarks.length > 0 && (
@@ -877,6 +930,13 @@ ${extractedText}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: '16px', justifyContent: 'space-between', alignItems: 'center' }}>
         <h2>Проектирование</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px', backgroundColor: 'var(--bg-color)', padding: '8px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+          <button 
+            onClick={() => setIsAdmin(!isAdmin)} 
+            style={{ padding: '6px 12px', background: isAdmin ? 'var(--accent-blue)' : 'transparent', color: isAdmin ? 'white' : 'var(--text-muted)', border: '1px solid', borderColor: isAdmin ? 'var(--accent-blue)' : 'var(--border-color)', borderRadius: '4px', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            <ShieldAlert size={14} /> Admin
+          </button>
+          <div style={{ width: '1px', height: '20px', backgroundColor: 'var(--border-color)' }}></div>
           <Users size={18} color="var(--text-muted)" />
           <span style={{ fontSize: '14px', fontWeight: 'bold' }}>Текущая роль:</span>
           <select 
