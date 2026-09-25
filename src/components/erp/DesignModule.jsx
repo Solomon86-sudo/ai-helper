@@ -25,6 +25,23 @@ const DesignModule = () => {
   const [newSecId, setNewSecId] = useState('');
   const [newSecName, setNewSecName] = useState('');
 
+  // --- ИРД State ---
+  const [irdDocuments, setIrdDocuments] = useState([
+    { id: 1, name: 'ГПЗУ №RU78-2024-001', type: 'ГПЗУ', filename: null, issueDate: '2024-01-15', expiryDate: '2027-01-15', version: 1, status: 'Действует', archive: [] },
+    { id: 2, name: 'ТУ на подключение к теплоснабжению', type: 'ТУ на подключение', filename: null, issueDate: '2023-11-10', expiryDate: '2026-11-10', version: 1, status: 'Действует', archive: [] },
+    { id: 3, name: 'Результаты инженерно-геологических изысканий', type: 'Результаты ИИ', filename: null, issueDate: '2023-12-05', expiryDate: '2028-12-05', version: 1, status: 'Действует', archive: [] },
+    { id: 4, name: 'Кадастровый план участка', type: 'Кадастровый план', filename: null, issueDate: '2022-05-20', expiryDate: null, version: 1, status: 'Действует', archive: [] },
+    { id: 5, name: 'Топографическая съемка', type: 'Прочее', filename: null, issueDate: '2023-08-14', expiryDate: '2026-08-14', version: 1, status: 'Действует', archive: [] },
+  ]);
+  const [irdApproved, setIrdApproved] = useState(false);
+  const [tzFile, setTzFile] = useState(null);
+  const [tzVersion, setTzVersion] = useState(1);
+  const [tzArchive, setTzArchive] = useState([]);
+  const [expandedIrdDoc, setExpandedIrdDoc] = useState(null);
+  const [showAddIrd, setShowAddIrd] = useState(false);
+  const [newIrdDoc, setNewIrdDoc] = useState({ name: '', type: 'ГПЗУ', issueDate: '', expiryDate: '' });
+  const [compositionApproved, setCompositionApproved] = useState(false);
+
   const [rdSheets, setRdSheets] = useState([
     { id: 1, section: 'AR', number: 1, name: 'Общие данные', pdfLink: 'uploaded', pdfFilename: '01-AR_Лист1.pdf', dwgLink: 'uploaded', dwgFilename: '01-AR_Лист1.dwg', revision: 0, remarks: [] },
     { id: 2, section: 'AR', number: 2, name: 'План на отм. 0.000', pdfLink: 'uploaded', pdfFilename: '01-AR_Лист2.pdf', dwgLink: null, dwgFilename: null, revision: 0, remarks: [] },
@@ -361,6 +378,229 @@ ${extractedText}
     });
   });
 
+  // ====== IRD Actions ======
+  const handleAddIrdDoc = () => {
+    if (newIrdDoc.name) {
+      setIrdDocuments([...irdDocuments, {
+        id: Date.now(),
+        name: newIrdDoc.name,
+        type: newIrdDoc.type,
+        filename: null,
+        issueDate: newIrdDoc.issueDate,
+        expiryDate: newIrdDoc.expiryDate || null,
+        version: 1,
+        status: 'Действует',
+        archive: []
+      }]);
+      setNewIrdDoc({ name: '', type: 'ГПЗУ', issueDate: '', expiryDate: '' });
+      setShowAddIrd(false);
+    }
+  };
+
+  const handleIrdFileUpload = (e, docId) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    
+    setIrdDocuments(prev => prev.map(doc => {
+      if (doc.id === docId) {
+        let newArchive = [...doc.archive];
+        if (doc.filename) {
+          newArchive.push({
+            filename: doc.filename,
+            version: doc.version,
+            date: new Date().toLocaleDateString()
+          });
+        }
+        return {
+          ...doc,
+          filename: file.name,
+          version: doc.filename ? doc.version + 1 : doc.version,
+          archive: newArchive
+        };
+      }
+      return doc;
+    }));
+    e.target.value = null;
+  };
+
+  const handleTzUpload = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    if (tzFile) {
+      setTzArchive([...tzArchive, { filename: tzFile, version: tzVersion, date: new Date().toLocaleDateString() }]);
+      setTzVersion(v => v + 1);
+    }
+    setTzFile(file.name);
+    e.target.value = null;
+  };
+
+  const checkExpiryStatus = (expiryDate) => {
+    if (!expiryDate) return { color: '#27ae60', title: 'Бессрочный' };
+    const exp = new Date(expiryDate);
+    const now = new Date('2026-09-25');
+    const daysLeft = (exp - now) / (1000 * 60 * 60 * 24);
+    if (daysLeft < 0) return { color: '#e74c3c', title: 'Истёк' };
+    if (daysLeft <= 30) return { color: '#f1c40f', title: 'Истекает' };
+    return { color: '#27ae60', title: 'Действует' };
+  };
+
+  const renderIRD = () => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+      
+      {/* Утверждение ИРД */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--bg-panel)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+        <h3 style={{ margin: 0 }}>Исходно-разрешительная документация</h3>
+        <div>
+          {irdApproved ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#27ae60', fontWeight: 'bold' }}>
+              <CheckCircle2 size={20} /> Утверждено ✓
+            </div>
+          ) : role === 'client' ? (
+            <button onClick={() => setIrdApproved(true)} style={{ padding: '8px 16px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <CheckCircle2 size={16} /> Утвердить ИРД
+            </button>
+          ) : (
+            <div style={{ color: '#e67e22', fontWeight: 'bold' }}>Ожидает утверждения Заказчиком</div>
+          )}
+        </div>
+      </div>
+
+      {/* Таблица документов */}
+      <div style={{ backgroundColor: 'var(--bg-panel)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '16px' }}>
+          <h4 style={{ margin: 0 }}>Реестр исходных документов</h4>
+          <button onClick={() => setShowAddIrd(!showAddIrd)} style={{ padding: '6px 12px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-color)', borderRadius: '4px', cursor: 'pointer' }}>
+            + Добавить документ
+          </button>
+        </div>
+
+        {showAddIrd && (
+          <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', flexWrap: 'wrap', alignItems: 'center', backgroundColor: 'var(--bg-color)', padding: '12px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+            <input type="text" placeholder="Название документа" value={newIrdDoc.name} onChange={e => setNewIrdDoc({...newIrdDoc, name: e.target.value})} style={{ flex: 1, minWidth: '200px', padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-panel)', color: 'var(--text-color)' }} />
+            <select value={newIrdDoc.type} onChange={e => setNewIrdDoc({...newIrdDoc, type: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-panel)', color: 'var(--text-color)' }}>
+              <option>ГПЗУ</option><option>ТУ на подключение</option><option>Результаты ИИ</option><option>Кадастровый план</option><option>АГР</option><option>Разрешение на строительство</option><option>Прочее</option>
+            </select>
+            <input type="date" title="Дата выдачи" value={newIrdDoc.issueDate} onChange={e => setNewIrdDoc({...newIrdDoc, issueDate: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-panel)', color: 'var(--text-color)' }} />
+            <input type="date" title="Срок действия" value={newIrdDoc.expiryDate} onChange={e => setNewIrdDoc({...newIrdDoc, expiryDate: e.target.value})} style={{ padding: '8px', borderRadius: '4px', border: '1px solid var(--border-color)', backgroundColor: 'var(--bg-panel)', color: 'var(--text-color)' }} />
+            <button onClick={handleAddIrdDoc} style={{ padding: '8px 16px', backgroundColor: '#2980b9', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Добавить</button>
+          </div>
+        )}
+
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px' }}>
+          <thead>
+            <tr style={{ borderBottom: '2px solid var(--border-color)', textAlign: 'left', backgroundColor: 'rgba(0,0,0,0.02)' }}>
+              <th style={{ padding: '10px 8px' }}>Название документа</th>
+              <th style={{ padding: '10px 8px' }}>Тип</th>
+              <th style={{ padding: '10px 8px' }}>Сроки</th>
+              <th style={{ padding: '10px 8px' }}>Файл / Версия</th>
+              <th style={{ padding: '10px 8px', width: '100px' }}>Действия</th>
+            </tr>
+          </thead>
+          <tbody>
+            {irdDocuments.map(doc => {
+              const status = checkExpiryStatus(doc.expiryDate);
+              return (
+                <React.Fragment key={doc.id}>
+                  <tr style={{ borderBottom: expandedIrdDoc === doc.id ? 'none' : '1px solid var(--border-color)' }}>
+                    <td style={{ padding: '10px 8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: status.color, flexShrink: 0 }} title={status.title}></div>
+                        {doc.name}
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px 8px', color: 'var(--text-muted)' }}>{doc.type}</td>
+                    <td style={{ padding: '10px 8px' }}>
+                      <div style={{ whiteSpace: 'nowrap' }}>Выдан: {doc.issueDate || '—'}</div>
+                      <div style={{ whiteSpace: 'nowrap', color: doc.expiryDate ? status.color : 'var(--text-muted)' }}>
+                        До: {doc.expiryDate || 'бессрочно'}
+                      </div>
+                    </td>
+                    <td style={{ padding: '10px 8px' }}>
+                      {doc.filename ? (
+                        <div>
+                          <a href="#" style={{ color: '#3498db', textDecoration: 'none', wordBreak: 'break-all' }}>{doc.filename}</a>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Версия {doc.version}</div>
+                        </div>
+                      ) : (
+                        <span style={{ color: 'var(--text-muted)' }}>Нет файла</span>
+                      )}
+                    </td>
+                    <td style={{ padding: '10px 8px' }}>
+                      <div style={{ display: 'flex', gap: '6px', flexDirection: 'column' }}>
+                        <label style={{ cursor: 'pointer', padding: '4px 8px', backgroundColor: 'var(--bg-color)', border: '1px solid var(--border-color)', color: 'var(--text-color)', borderRadius: '4px', textAlign: 'center', fontSize: '11px' }}>
+                          Загрузить
+                          <input type="file" style={{ display: 'none' }} onChange={(e) => handleIrdFileUpload(e, doc.id)} />
+                        </label>
+                        {doc.archive.length > 0 && (
+                          <button onClick={() => setExpandedIrdDoc(expandedIrdDoc === doc.id ? null : doc.id)} style={{ padding: '4px 8px', backgroundColor: expandedIrdDoc === doc.id ? 'var(--bg-color)' : 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-color)', borderRadius: '4px', cursor: 'pointer', fontSize: '11px' }}>
+                            Архив ({doc.archive.length})
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                  {expandedIrdDoc === doc.id && doc.archive.length > 0 && (
+                    <tr style={{ backgroundColor: 'rgba(0,0,0,0.02)', borderBottom: '1px solid var(--border-color)' }}>
+                      <td colSpan={5} style={{ padding: '12px 16px', borderLeft: '3px solid var(--primary-color)' }}>
+                        <div style={{ fontSize: '12px', fontWeight: 'bold', marginBottom: '8px' }}>Архив версий:</div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                          {doc.archive.map((arch, idx) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', borderBottom: '1px dashed var(--border-color)', fontSize: '12px' }}>
+                              <span><span style={{ color: 'var(--text-muted)', marginRight: '8px' }}>v{arch.version}</span> {arch.filename}</span>
+                              <span style={{ color: 'var(--text-muted)' }}>{arch.date}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+
+      {/* ТЗ */}
+      <div style={{ backgroundColor: 'var(--bg-panel)', padding: '16px', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+        <h4 style={{ margin: '0 0 16px 0' }}>Техническое задание на проектирование</h4>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 300px', padding: '20px', border: '1px dashed var(--border-color)', borderRadius: '6px', textAlign: 'center', backgroundColor: 'var(--bg-color)' }}>
+            {tzFile ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <FileText size={32} color="#3498db" style={{ marginBottom: '12px' }} />
+                <div style={{ marginBottom: '4px' }}><a href="#" style={{ color: '#3498db', textDecoration: 'none', fontWeight: 'bold' }}>{tzFile}</a></div>
+                <div style={{ color: 'var(--text-muted)', fontSize: '12px' }}>Актуальная версия (v{tzVersion})</div>
+              </div>
+            ) : (
+              <div style={{ color: 'var(--text-muted)', padding: '20px 0' }}>ТЗ не загружено</div>
+            )}
+            <label style={{ display: 'inline-block', marginTop: '16px', cursor: 'pointer', padding: '8px 16px', backgroundColor: '#2980b9', color: 'white', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+              {tzFile ? 'Загрузить новую версию' : 'Загрузить ТЗ'}
+              <input type="file" style={{ display: 'none' }} accept=".pdf,.doc,.docx" onChange={handleTzUpload} />
+            </label>
+          </div>
+          
+          {tzArchive.length > 0 && (
+            <div style={{ flex: '1 1 300px', backgroundColor: 'var(--bg-color)', padding: '16px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+              <div style={{ fontSize: '13px', fontWeight: 'bold', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FolderOpen size={16} /> Архив версий ТЗ
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                {tzArchive.map((arch, idx) => (
+                  <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px', fontSize: '12px', backgroundColor: 'var(--bg-panel)', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+                    <span><strong style={{ color: 'var(--text-muted)', marginRight: '6px' }}>v{arch.version}</strong> {arch.filename}</span>
+                    <span style={{ color: 'var(--text-muted)' }}>{arch.date}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   // ====== RENDER ======
   const renderRD = () => (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -370,21 +610,31 @@ ${extractedText}
       <input type="file" ref={tomeDwgInputRef} style={{ display: 'none' }} onChange={handleTomeDwgUpload} accept=".dwg,.dxf" />
 
       {/* Состав проекта */}
-      <div style={{ padding: '16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', gap: '20px', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ padding: '16px', backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', gap: '20px', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap' }}>
         <div>
-          <h5 style={{ margin: '0 0 8px 0' }}>Состав проекта</h5>
+          <h5 style={{ margin: '0 0 8px 0', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            Состав проекта
+            {compositionApproved && <span style={{ fontSize: '11px', padding: '2px 8px', backgroundColor: '#27ae60', color: 'white', borderRadius: '12px' }}>✓ Состав утверждён</span>}
+          </h5>
           <span style={{ fontSize: '13px', color: compositionFile ? '#27ae60' : 'var(--text-muted)' }}>
             {compositionFile ? `✓ Загружен: ${compositionFile}` : 'Ожидает загрузки состава (PDF/Word)'}
           </span>
         </div>
-        {role === 'designer' && (
-          <div>
-            <input type="file" id="compositionUpload" style={{ display: 'none' }} accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={handleCompositionUpload} />
-            <button onClick={() => document.getElementById('compositionUpload').click()} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center', whiteSpace: 'nowrap' }}>
-              <Upload size={16}/> Загрузить шифры (PDF/Word/Excel)
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          {role === 'client' && (
+            <button onClick={() => setCompositionApproved(true)} style={{ padding: '8px 16px', backgroundColor: '#27ae60', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center', whiteSpace: 'nowrap' }}>
+              <CheckCircle2 size={16}/> Утвердить состав проекта
             </button>
-          </div>
-        )}
+          )}
+          {role === 'designer' && (
+            <div>
+              <input type="file" id="compositionUpload" style={{ display: 'none' }} accept=".pdf,.doc,.docx,.xls,.xlsx" onChange={handleCompositionUpload} />
+              <button onClick={() => document.getElementById('compositionUpload').click()} style={{ padding: '8px 16px', backgroundColor: 'var(--primary-color)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', gap: '8px', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                <Upload size={16}/> Загрузить шифры (PDF/Word/Excel)
+              </button>
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Ручное добавление раздела */}
@@ -657,7 +907,7 @@ ${extractedText}
       </div>
 
       <div style={{ flex: 1, paddingRight: '10px' }}>
-        {activeSubTab === 'ird' && <p style={{ color: 'var(--text-muted)' }}>Раздел ИРД и ТЗ — в разработке</p>}
+        {activeSubTab === 'ird' && renderIRD()}
         {activeSubTab === 'stage_p' && <p style={{ color: 'var(--text-muted)' }}>Раздел Стадия П — в разработке</p>}
         {activeSubTab === 'rd' && renderRD()}
       </div>
