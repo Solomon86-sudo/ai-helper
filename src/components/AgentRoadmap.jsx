@@ -8,7 +8,7 @@ export default function AgentRoadmap() {
 
   // Пинг для пробуждения бэкенда (Render засыпает через 15 минут)
   useEffect(() => {
-    fetch('https://ai-helper-e4qp.onrender.com/docs', { method: 'HEAD' }).catch(() => {});
+    fetch('https://ai-helper-backend-2u9t.onrender.com/docs', { method: 'HEAD' }).catch(() => {});
   }, []);
 
   const handleSearch = async () => {
@@ -16,7 +16,7 @@ export default function AgentRoadmap() {
     setLoading(true);
     setRoadmapData(null);
     try {
-      const res = await fetch(`https://ai-helper-e4qp.onrender.com/api/roadmap?query=${encodeURIComponent(query)}`);
+      const res = await fetch(`https://ai-helper-backend-2u9t.onrender.com/api/roadmap?query=${encodeURIComponent(query)}`);
       const data = await res.json();
       setRoadmapData(data);
     } catch (e) {
