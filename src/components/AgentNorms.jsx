@@ -10,6 +10,7 @@ export default function AgentNorms() {
     }
   ]);
   const [input, setInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   // Пинг для пробуждения бэкенда (т.к. Render засыпает через 15 минут)
   useEffect(() => {
@@ -17,11 +18,12 @@ export default function AgentNorms() {
   }, []);
 
   const handleSend = async () => {
-    if (!input.trim()) return;
+    if (!input.trim() || isLoading) return;
     
     const userMsg = { id: Date.now(), sender: 'user', text: input };
     setMessages((prev) => [...prev, userMsg]);
     setInput('');
+    setIsLoading(true);
     
     try {
       const response = await fetch('https://ai-helper-backend-2u9t.onrender.com/api/chat', {
@@ -52,6 +54,8 @@ export default function AgentNorms() {
           text: '⏳ Ошибка соединения. Если вы не пользовались сервисом более 15 минут, бесплатный сервер ушёл в "спящий режим". Он уже просыпается! **Подождите 30-40 секунд и отправьте ваш запрос ещё раз.**',
         }
       ]);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -75,6 +79,17 @@ export default function AgentNorms() {
             {msg.source && <div className="source-tag">{msg.source}</div>}
           </div>
         ))}
+        {isLoading && (
+          <div className="chat-bubble ai" style={{ opacity: 0.7 }}>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <Bot size={16} />
+              <span style={{ fontWeight: 600, fontSize: '0.875rem' }}>ИИ-Нормоконтроль</span>
+            </div>
+            <div style={{ marginTop: '8px', fontSize: '14px' }}>
+              <span className="typing-indicator">Анализирую нормативы...</span>
+            </div>
+          </div>
+        )}
       </div>
       <div className="chat-input-area">
         <input 
