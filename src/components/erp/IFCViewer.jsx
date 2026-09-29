@@ -158,23 +158,25 @@ export default function IFCViewer() {
         const WebIFC = await import('web-ifc');
         ifcApi = new WebIFC.IfcAPI();
         
-        // Попробуем несколько путей для WASM файлов
+        // Пути для WASM файлов (порядок: локальный → CDN с правильной версией)
         const wasmPaths = [
-          'https://unpkg.com/web-ifc@0.0.66/',
-          'https://cdn.jsdelivr.net/npm/web-ifc@0.0.66/',
-          '/node_modules/web-ifc/',
+          '/',
           './',
+          'https://unpkg.com/web-ifc@0.0.78/',
+          'https://cdn.jsdelivr.net/npm/web-ifc@0.0.78/',
         ];
         
         let initialized = false;
         for (const wasmPath of wasmPaths) {
           try {
+            console.log(`Trying WASM path: ${wasmPath}`);
             ifcApi.SetWasmPath(wasmPath);
             await ifcApi.Init();
             initialized = true;
+            console.log(`WASM initialized from: ${wasmPath}`);
             break;
           } catch (e) {
-            console.warn(`WASM path ${wasmPath} failed, trying next...`);
+            console.warn(`WASM path ${wasmPath} failed:`, e.message);
           }
         }
         
