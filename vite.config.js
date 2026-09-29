@@ -11,5 +11,9 @@ export default defineConfig({
         changeOrigin: true
       }
     }
-  }
+  },
+  optimizeDeps: {
+    exclude: ['web-ifc']
+  },
+  assetsInclude: ['**/*.wasm']
 })

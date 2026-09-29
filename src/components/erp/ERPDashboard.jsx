@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
-import { LayoutDashboard, PenTool, HardHat, DollarSign, CalendarDays, BookOpen, Map, Wrench, Users } from 'lucide-react';
+import { LayoutDashboard, PenTool, HardHat, DollarSign, CalendarDays, BookOpen, Map, Wrench, Users, Box } from 'lucide-react';
 import PredevModule from './PredevModule';
 import DesignModule from './DesignModule';
 import ConstructionModule from './ConstructionModule';
 import AdminModule from './AdminModule';
+import IFCViewer from './IFCViewer';
 import AgentNorms from '../AgentNorms';
 import AgentRoadmap from '../AgentRoadmap';
 import AgentManual from '../AgentManual';
@@ -15,6 +16,7 @@ const ERPDashboard = ({ project }) => {
     { id: 'predev', name: 'Предпроект', icon: <LayoutDashboard size={18} /> },
     { id: 'design', name: 'Проектирование', icon: <PenTool size={18} /> },
     { id: 'construction', name: 'Строительство', icon: <HardHat size={18} /> },
+    { id: 'bim3d', name: 'BIM 3D', icon: <Box size={18} /> },
     { id: 'budget', name: 'Бюджет', icon: <DollarSign size={18} /> },
     { id: 'schedule', name: 'График', icon: <CalendarDays size={18} /> },
     { id: 'norms', name: 'Спросить норму', icon: <BookOpen size={18} /> },
@@ -55,6 +57,7 @@ const ERPDashboard = ({ project }) => {
         {activeModule === 'predev' && <PredevModule />}
         {activeModule === 'design' && <DesignModule />}
         {activeModule === 'construction' && <ConstructionModule />}
+        {activeModule === 'bim3d' && <IFCViewer />}
         {activeModule === 'budget' && <div><h3>Модуль: Бюджет</h3><p>Статьи бюджета, банковские лимиты, факты оплат и пересчет EAC.</p></div>}
         {activeModule === 'schedule' && <div><h3>Модуль: График</h3><p>WBS-структура, вехи и раздельный учет Physical% / Cost%.</p></div>}
         {activeModule === 'norms' && <AgentNorms />}
