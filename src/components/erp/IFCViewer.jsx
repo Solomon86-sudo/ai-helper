@@ -394,6 +394,88 @@ export default function IFCViewer() {
   }, [clearModel, centerCamera]);
 
   // ========================
+  // Интерактивность (выделение элементов кликом)
+  // ========================
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || !modelLoaded) return;
+
+    let isDragging = false;
+    let downX = 0;
+    let downY = 0;
+
+    const handlePointerDown = (e) => {
+      isDragging = false;
+      downX = e.clientX;
+      downY = e.clientY;
+    };
+
+    const handlePointerMove = (e) => {
+      if (Math.abs(e.clientX - downX) > 5 || Math.abs(e.clientY - downY) > 5) {
+        isDragging = true;
+      }
+    };
+
+    const handlePointerUp = async (e) => {
+      // Если мы просто вращали камеру - игнорируем
+      if (isDragging || !modelRef.current || !cameraRef.current) return;
+      
+      const THREE = await import('three');
+      
+      // Вычисляем координаты мыши (-1 до +1)
+      const rect = canvas.getBoundingClientRect();
+      const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+      const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+      
+      const mouse = new THREE.Vector2(x, y);
+      const raycaster = new THREE.Raycaster();
+      
+      raycaster.setFromCamera(mouse, cameraRef.current);
+      
+      // Ищем пересечения с моделью
+      const intersects = raycaster.intersectObject(modelRef.current, true);
+      
+      if (intersects.length > 0) {
+        // Берем первый (ближайший) объект
+        const mesh = intersects[0].object;
+        
+        if (mesh.isMesh) {
+          // Если это первый клик по объекту - сохраняем оригинальный материал
+          if (!mesh.userData.originalMaterial) {
+            mesh.userData.originalMaterial = mesh.material;
+          }
+          
+          if (!mesh.userData.isSelected) {
+            // Красим в пастельный зелёный (установлено)
+            const greenMat = mesh.userData.originalMaterial.clone();
+            greenMat.color.setHex(0xa7f3d0); // Pastel green
+            // Оставляем небольшую прозрачность, если она была, или делаем непрозрачным
+            greenMat.transparent = false;
+            greenMat.opacity = 1;
+            
+            mesh.material = greenMat;
+            mesh.userData.isSelected = true;
+          } else {
+            // Возвращаем оригинальный цвет (отменяем выделение)
+            mesh.material = mesh.userData.originalMaterial;
+            mesh.userData.isSelected = false;
+          }
+        }
+      }
+    };
+
+    canvas.addEventListener('pointerdown', handlePointerDown);
+    canvas.addEventListener('pointermove', handlePointerMove);
+    canvas.addEventListener('pointerup', handlePointerUp);
+
+    return () => {
+      canvas.removeEventListener('pointerdown', handlePointerDown);
+      canvas.removeEventListener('pointermove', handlePointerMove);
+      canvas.removeEventListener('pointerup', handlePointerUp);
+    };
+  }, [modelLoaded]);
+
+  // ========================
   // Универсальный обработчик файлов
   // ========================
   const handleFile = useCallback((file) => {
@@ -559,7 +641,7 @@ export default function IFCViewer() {
         {/* Controls hint */}
         {modelLoaded && (
           <div style={{ position: 'absolute', bottom: '12px', right: '12px', display: 'flex', gap: '8px', fontSize: '11px', color: 'rgba(255,255,255,0.4)', zIndex: 5 }}>
-            <span>🖱️ Вращение</span><span>⚙️ Колесо = Зум</span><span>🖱️ ПКМ = Панорама</span>
+            <span>🖱️ ЛКМ по детали = Отметить</span><span>🖱️ Драг = Вращение</span><span>⚙️ Колесо = Зум</span><span>🖱️ ПКМ = Панорама</span>
           </div>
         )}
       </div>
