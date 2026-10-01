@@ -206,20 +206,40 @@ export default function IFCViewer() {
 
       const model = gltf.scene;
       
-      // Статистика
+      // Статистика и идентификация
       let meshCount = 0;
       let triangleCount = 0;
+      const selections = new Set();
+      try {
+        const saved = JSON.parse(localStorage.getItem(`bim_sel_${file.name}`) || '[]');
+        saved.forEach(id => selections.add(id));
+      } catch (e) {}
+
       model.traverse(child => {
         if (child.isMesh) {
-          meshCount++;
+          // Уникальный ID для меша (комбинация индекса и имени)
+          child.userData.meshId = `glb_${meshCount}_${child.name || ''}`;
+          
           if (child.geometry.index) {
             triangleCount += child.geometry.index.count / 3;
           } else if (child.geometry.attributes.position) {
             triangleCount += child.geometry.attributes.position.count / 3;
           }
-          // Включаем тени
           child.castShadow = true;
           child.receiveShadow = true;
+          
+          // Восстановление сохраненного выделения
+          if (selections.has(child.userData.meshId)) {
+            child.userData.originalMaterial = child.material;
+            const greenMat = child.material.clone();
+            greenMat.color.setHex(0x34d399); // Более яркий зеленый (emerald-400)
+            greenMat.transparent = false;
+            greenMat.opacity = 1;
+            child.material = greenMat;
+            child.userData.isSelected = true;
+          }
+          
+          meshCount++;
         }
       });
 
@@ -318,6 +338,12 @@ export default function IFCViewer() {
       const group = new THREE.Group();
       let meshCount = 0;
       let totalTriangles = 0;
+      
+      const selections = new Set();
+      try {
+        const saved = JSON.parse(localStorage.getItem(`bim_sel_${file.name}`) || '[]');
+        saved.forEach(id => selections.add(id));
+      } catch (e) {}
 
       ifcApi.StreamAllMeshes(modelID, (mesh) => {
         const placed = mesh.geometries;
@@ -356,6 +382,18 @@ export default function IFCViewer() {
           });
 
           const m = new THREE.Mesh(geometry, material);
+          m.userData.meshId = `ifc_${pg.geometryExpressID}_${meshCount}`;
+          
+          if (selections.has(m.userData.meshId)) {
+            m.userData.originalMaterial = m.material;
+            const greenMat = m.material.clone();
+            greenMat.color.setHex(0x34d399);
+            greenMat.transparent = false;
+            greenMat.opacity = 1;
+            m.material = greenMat;
+            m.userData.isSelected = true;
+          }
+
           const matrix = new THREE.Matrix4().fromArray(pg.flatTransformation);
           m.applyMatrix4(matrix);
           group.add(m);
@@ -394,11 +432,51 @@ export default function IFCViewer() {
   }, [clearModel, centerCamera]);
 
   // ========================
+  // Сохранение и сброс выделений
+  // ========================
+  const getSelections = useCallback((fileName) => {
+    try {
+      return JSON.parse(localStorage.getItem(`bim_sel_${fileName}`) || '[]');
+    } catch {
+      return [];
+    }
+  }, []);
+
+  const saveSelection = useCallback((fileName, meshId, isSelected) => {
+    try {
+      const selections = new Set(getSelections(fileName));
+      if (isSelected) {
+        selections.add(meshId);
+      } else {
+        selections.delete(meshId);
+      }
+      localStorage.setItem(`bim_sel_${fileName}`, JSON.stringify([...selections]));
+    } catch (e) {
+      console.warn('Failed to save selection', e);
+    }
+  }, [getSelections]);
+
+  const resetSelections = useCallback(() => {
+    if (!modelInfo || !modelRef.current) return;
+    
+    // Очищаем в localStorage
+    localStorage.removeItem(`bim_sel_${modelInfo.name}`);
+    
+    // Сбрасываем визуально
+    modelRef.current.traverse(mesh => {
+      if (mesh.isMesh && mesh.userData.isSelected && mesh.userData.originalMaterial) {
+        mesh.material = mesh.userData.originalMaterial;
+        mesh.userData.isSelected = false;
+      }
+    });
+  }, [modelInfo]);
+
+  // ========================
   // Интерактивность (выделение элементов кликом)
   // ========================
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas || !modelLoaded) return;
+    if (!canvas || !modelLoaded || !modelInfo) return;
 
     let isDragging = false;
     let downX = 0;
@@ -417,12 +495,10 @@ export default function IFCViewer() {
     };
 
     const handlePointerUp = async (e) => {
-      // Если мы просто вращали камеру - игнорируем
       if (isDragging || !modelRef.current || !cameraRef.current) return;
       
       const THREE = await import('three');
       
-      // Вычисляем координаты мыши (-1 до +1)
       const rect = canvas.getBoundingClientRect();
       const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
       const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -432,33 +508,30 @@ export default function IFCViewer() {
       
       raycaster.setFromCamera(mouse, cameraRef.current);
       
-      // Ищем пересечения с моделью
       const intersects = raycaster.intersectObject(modelRef.current, true);
       
       if (intersects.length > 0) {
-        // Берем первый (ближайший) объект
         const mesh = intersects[0].object;
         
         if (mesh.isMesh) {
-          // Если это первый клик по объекту - сохраняем оригинальный материал
           if (!mesh.userData.originalMaterial) {
             mesh.userData.originalMaterial = mesh.material;
           }
           
           if (!mesh.userData.isSelected) {
-            // Красим в пастельный зелёный (установлено)
+            // Более яркий зеленый
             const greenMat = mesh.userData.originalMaterial.clone();
-            greenMat.color.setHex(0xa7f3d0); // Pastel green
-            // Оставляем небольшую прозрачность, если она была, или делаем непрозрачным
+            greenMat.color.setHex(0x34d399); 
             greenMat.transparent = false;
             greenMat.opacity = 1;
             
             mesh.material = greenMat;
             mesh.userData.isSelected = true;
+            saveSelection(modelInfo.name, mesh.userData.meshId, true);
           } else {
-            // Возвращаем оригинальный цвет (отменяем выделение)
             mesh.material = mesh.userData.originalMaterial;
             mesh.userData.isSelected = false;
+            saveSelection(modelInfo.name, mesh.userData.meshId, false);
           }
         }
       }
@@ -473,7 +546,7 @@ export default function IFCViewer() {
       canvas.removeEventListener('pointermove', handlePointerMove);
       canvas.removeEventListener('pointerup', handlePointerUp);
     };
-  }, [modelLoaded]);
+  }, [modelLoaded, modelInfo, saveSelection]);
 
   // ========================
   // Универсальный обработчик файлов
@@ -579,8 +652,15 @@ export default function IFCViewer() {
           </label>
           {modelLoaded && (
             <>
-              <button style={s.btn} onClick={resetCamera} title="Сбросить камеру"><RotateCcw size={14} /></button>
-              <button style={s.btn} onClick={toggleFullscreen} title="Полный экран"><Maximize2 size={14} /></button>
+              <button style={s.btn} onClick={resetSelections} title="Сбросить все отметки смонтированного">
+                Сбросить отметки
+              </button>
+              <button style={s.btn} onClick={resetCamera} title="Сбросить камеру">
+                <RotateCcw size={14} />
+              </button>
+              <button style={s.btn} onClick={toggleFullscreen} title="Полный экран">
+                <Maximize2 size={14} />
+              </button>
             </>
           )}
         </div>
