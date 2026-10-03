@@ -2,16 +2,16 @@ import React, { useState } from 'react';
 import { Upload, Calendar, ChevronRight, ChevronDown, BarChart2, CheckCircle2, AlertTriangle, Info } from 'lucide-react';
 
 const MOCK_TASKS = [
-  { uid: '1', id: '1', name: 'ЖК Астра (Фаза 1)', wbs: '1', start: '2026-01-10', finish: '2027-12-30', percent: '15', outlineLevel: 1, isSummary: true, physicalPct: 12, costPct: 15 },
-  { uid: '2', id: '2', name: 'Подготовительные работы', wbs: '1.1', start: '2026-01-10', finish: '2026-03-15', percent: '100', outlineLevel: 2, isSummary: true, physicalPct: 100, costPct: 100 },
-  { uid: '3', id: '3', name: 'Ограждение стройплощадки', wbs: '1.1.1', start: '2026-01-10', finish: '2026-01-20', percent: '100', outlineLevel: 3, isSummary: false, physicalPct: 100, costPct: 100 },
-  { uid: '4', id: '4', name: 'Мобилизация бытового городка', wbs: '1.1.2', start: '2026-01-21', finish: '2026-03-15', percent: '100', outlineLevel: 3, isSummary: false, physicalPct: 100, costPct: 100 },
-  { uid: '5', id: '5', name: 'Земляные работы (Котлован)', wbs: '1.2', start: '2026-03-16', finish: '2026-05-20', percent: '80', outlineLevel: 2, isSummary: true, physicalPct: 85, costPct: 75 },
-  { uid: '6', id: '6', name: 'Разработка грунта', wbs: '1.2.1', start: '2026-03-16', finish: '2026-04-30', percent: '100', outlineLevel: 3, isSummary: false, physicalPct: 100, costPct: 100 },
-  { uid: '7', id: '7', name: 'Устройство шпунтового ограждения', wbs: '1.2.2', start: '2026-05-01', finish: '2026-05-20', percent: '40', outlineLevel: 3, isSummary: false, physicalPct: 50, costPct: 40 },
-  { uid: '8', id: '8', name: 'Монолитные работы', wbs: '1.3', start: '2026-05-21', finish: '2026-11-30', percent: '0', outlineLevel: 2, isSummary: true, physicalPct: 0, costPct: 0 },
-  { uid: '9', id: '9', name: 'Фундаментная плита', wbs: '1.3.1', start: '2026-05-21', finish: '2026-06-15', percent: '0', outlineLevel: 3, isSummary: false, physicalPct: 0, costPct: 0 },
-  { uid: '10', id: '10', name: 'Стены и пилоны -1 этажа', wbs: '1.3.2', start: '2026-06-16', finish: '2026-07-05', percent: '0', outlineLevel: 3, isSummary: false, physicalPct: 0, costPct: 0 },
+  { uid: '1', id: '1', name: 'ЖК Астра (Фаза 1)', wbs: '1', start: '2026-01-10', finish: '2027-12-30', percent: '15', outlineLevel: 1, isSummary: true, physicalPct: 12, costPct: 15, executor: '', cost: 450000000 },
+  { uid: '2', id: '2', name: 'Подготовительные работы', wbs: '1.1', start: '2026-01-10', finish: '2026-03-15', percent: '100', outlineLevel: 2, isSummary: true, physicalPct: 100, costPct: 100, executor: 'ООО СтройМонтаж', cost: 12500000 },
+  { uid: '3', id: '3', name: 'Ограждение стройплощадки', wbs: '1.1.1', start: '2026-01-10', finish: '2026-01-20', percent: '100', outlineLevel: 3, isSummary: false, physicalPct: 100, costPct: 100, executor: 'ООО СтройМонтаж', cost: 3200000 },
+  { uid: '4', id: '4', name: 'Мобилизация бытового городка', wbs: '1.1.2', start: '2026-01-21', finish: '2026-03-15', percent: '100', outlineLevel: 3, isSummary: false, physicalPct: 100, costPct: 100, executor: 'ООО СтройМонтаж', cost: 9300000 },
+  { uid: '5', id: '5', name: 'Земляные работы (Котлован)', wbs: '1.2', start: '2026-03-16', finish: '2026-05-20', percent: '80', outlineLevel: 2, isSummary: true, physicalPct: 85, costPct: 75, executor: 'ООО ГеоТех', cost: 38000000 },
+  { uid: '6', id: '6', name: 'Разработка грунта', wbs: '1.2.1', start: '2026-03-16', finish: '2026-04-30', percent: '100', outlineLevel: 3, isSummary: false, physicalPct: 100, costPct: 100, executor: 'ООО ГеоТех', cost: 25000000 },
+  { uid: '7', id: '7', name: 'Устройство шпунтового ограждения', wbs: '1.2.2', start: '2026-05-01', finish: '2026-05-20', percent: '40', outlineLevel: 3, isSummary: false, physicalPct: 50, costPct: 40, executor: 'ООО ГеоТех', cost: 13000000 },
+  { uid: '8', id: '8', name: 'Монолитные работы', wbs: '1.3', start: '2026-05-21', finish: '2026-11-30', percent: '0', outlineLevel: 2, isSummary: true, physicalPct: 0, costPct: 0, executor: 'Не назначен', cost: 185000000 },
+  { uid: '9', id: '9', name: 'Фундаментная плита', wbs: '1.3.1', start: '2026-05-21', finish: '2026-06-15', percent: '0', outlineLevel: 3, isSummary: false, physicalPct: 0, costPct: 0, executor: 'Не назначен', cost: 42000000 },
+  { uid: '10', id: '10', name: 'Стены и пилоны -1 этажа', wbs: '1.3.2', start: '2026-06-16', finish: '2026-07-05', percent: '0', outlineLevel: 3, isSummary: false, physicalPct: 0, costPct: 0, executor: 'Не назначен', cost: 31000000 },
 ];
 
 export default function ScheduleModule() {
@@ -45,10 +45,38 @@ export default function ScheduleModule() {
           return;
         }
 
+        // Extract resources map (UID -> Name)
+        const resourceMap = {};
+        const resourcesNode = xmlDoc.getElementsByTagName("Resources")[0];
+        if (resourcesNode) {
+          Array.from(resourcesNode.getElementsByTagName("Resource")).forEach(res => {
+            const uid = res.getElementsByTagName("UID")[0]?.textContent;
+            const name = res.getElementsByTagName("Name")[0]?.textContent;
+            if (uid && name) resourceMap[uid] = name;
+          });
+        }
+
+        // Extract assignments (Task UID -> Resource UIDs)
+        const taskAssignments = {};
+        const assignmentsNode = xmlDoc.getElementsByTagName("Assignments")[0];
+        if (assignmentsNode) {
+          Array.from(assignmentsNode.getElementsByTagName("Assignment")).forEach(a => {
+            const taskUID = a.getElementsByTagName("TaskUID")[0]?.textContent;
+            const resUID = a.getElementsByTagName("ResourceUID")[0]?.textContent;
+            if (taskUID && resUID && resourceMap[resUID]) {
+              if (!taskAssignments[taskUID]) taskAssignments[taskUID] = [];
+              if (!taskAssignments[taskUID].includes(resourceMap[resUID])) {
+                taskAssignments[taskUID].push(resourceMap[resUID]);
+              }
+            }
+          });
+        }
+
         const rawTasks = Array.from(tasksNode.getElementsByTagName("Task")).map(task => {
           const getText = (tag) => task.getElementsByTagName(tag)[0]?.textContent || '';
+          const uid = getText("UID");
           return {
-            uid: getText("UID"),
+            uid,
             id: getText("ID"),
             name: getText("Name"),
             wbs: getText("WBS"),
@@ -57,10 +85,10 @@ export default function ScheduleModule() {
             percent: getText("PercentComplete") || "0",
             outlineLevel: parseInt(getText("OutlineLevel") || "1", 10),
             isSummary: getText("Summary") === "1",
-            // MS Project export doesn't natively split Physical vs Cost %.
-            // We map MS Project % Complete to Physical, and default Cost to 0 for ERP tracking.
             physicalPct: parseInt(getText("PercentComplete") || "0", 10),
-            costPct: 0 
+            costPct: 0,
+            executor: taskAssignments[uid] ? taskAssignments[uid].join(', ') : '',
+            cost: parseFloat(getText("Cost") || getText("FixedCost") || "0"),
           };
         }).filter(t => t.name && t.wbs && parseInt(t.id) > 0);
 
@@ -148,13 +176,15 @@ export default function ScheduleModule() {
       {/* Table Container */}
       <div style={{ flex: 1, backgroundColor: 'var(--bg-panel)', borderRadius: '12px', border: '1px solid var(--border-color)', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
         <div style={{ overflowX: 'auto', flex: 1 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left', minWidth: '800px' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '13px', textAlign: 'left', minWidth: '1100px' }}>
             <thead style={{ backgroundColor: 'rgba(0,0,0,0.2)', borderBottom: '1px solid var(--border-color)' }}>
               <tr>
                 <th style={{ padding: '12px 16px', width: '60px' }}>WBS</th>
                 <th style={{ padding: '12px 16px' }}>Наименование задачи</th>
+                <th style={{ padding: '12px 16px', width: '150px' }}>Исполнитель</th>
                 <th style={{ padding: '12px 16px', width: '110px' }}>Начало</th>
                 <th style={{ padding: '12px 16px', width: '110px' }}>Окончание</th>
+                <th style={{ padding: '12px 16px', width: '120px', textAlign: 'right' }}>Стоимость, ₽</th>
                 <th style={{ padding: '12px 16px', width: '140px' }}>Физический % (СМР)</th>
                 <th style={{ padding: '12px 16px', width: '140px' }}>Освоение % (КС-2)</th>
                 <th style={{ padding: '12px 16px', width: '100px' }}>Статус</th>
@@ -185,8 +215,16 @@ export default function ScheduleModule() {
                       {task.name}
                     </td>
 
+                    <td style={{ padding: '10px 16px', fontSize: '12px', color: task.executor === 'Не назначен' ? '#f59e0b' : 'var(--text-muted)' }}>
+                      {task.executor || '—'}
+                    </td>
+
                     <td style={{ padding: '10px 16px' }}>{task.start}</td>
                     <td style={{ padding: '10px 16px', color: isLate ? '#ef4444' : 'inherit' }}>{task.finish}</td>
+                    
+                    <td style={{ padding: '10px 16px', textAlign: 'right', fontFamily: 'monospace', fontSize: '12px' }}>
+                      {task.cost > 0 ? new Intl.NumberFormat('ru-RU').format(task.cost) : '—'}
+                    </td>
                     
                     <td style={{ padding: '10px 16px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -220,7 +258,7 @@ export default function ScheduleModule() {
               })}
               {tasks.length === 0 && (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                     График не загружен. Загрузите файл XML из MS Project.
                   </td>
                 </tr>

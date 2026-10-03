@@ -54,17 +54,17 @@ const ERPDashboard = ({ project }) => {
         ))}
       </div>
 
-      <div style={{ flex: 1, backgroundColor: 'var(--bg-card)', borderRadius: '8px', padding: '24px', border: '1px solid var(--border-color)', overflowY: 'auto' }}>
-        {activeModule === 'predev' && <PredevModule />}
-        {activeModule === 'design' && <DesignModule />}
-        {activeModule === 'construction' && <ConstructionModule />}
-        {activeModule === 'bim3d' && <IFCViewer />}
-        {activeModule === 'budget' && <div><h3>Модуль: Бюджет</h3><p>Статьи бюджета, банковские лимиты, факты оплат и пересчет EAC.</p></div>}
-        {activeModule === 'schedule' && <ScheduleModule />}
-        {activeModule === 'norms' && <AgentNorms />}
-        {activeModule === 'roadmap' && <AgentRoadmap />}
-        {activeModule === 'manual' && <AgentManual />}
-        {activeModule === 'admin' && <AdminModule />}
+      <div style={{ flex: 1, backgroundColor: 'var(--bg-card)', borderRadius: '8px', padding: '24px', border: '1px solid var(--border-color)', overflowY: 'auto', position: 'relative' }}>
+        <div style={{ display: activeModule === 'predev' ? 'block' : 'none', height: '100%' }}><PredevModule /></div>
+        <div style={{ display: activeModule === 'design' ? 'block' : 'none', height: '100%' }}><DesignModule /></div>
+        <div style={{ display: activeModule === 'construction' ? 'block' : 'none', height: '100%' }}><ConstructionModule /></div>
+        <div style={{ display: activeModule === 'bim3d' ? 'block' : 'none', height: '100%' }}><IFCViewer /></div>
+        <div style={{ display: activeModule === 'budget' ? 'block' : 'none', height: '100%' }}><div><h3>Модуль: Бюджет</h3><p>Статьи бюджета, банковские лимиты, факты оплат и пересчет EAC.</p></div></div>
+        <div style={{ display: activeModule === 'schedule' ? 'block' : 'none', height: '100%' }}><ScheduleModule /></div>
+        <div style={{ display: activeModule === 'norms' ? 'block' : 'none', height: '100%' }}><AgentNorms /></div>
+        <div style={{ display: activeModule === 'roadmap' ? 'block' : 'none', height: '100%' }}><AgentRoadmap /></div>
+        <div style={{ display: activeModule === 'manual' ? 'block' : 'none', height: '100%' }}><AgentManual /></div>
+        <div style={{ display: activeModule === 'admin' ? 'block' : 'none', height: '100%' }}><AdminModule /></div>
       </div>
     </div>
   );
