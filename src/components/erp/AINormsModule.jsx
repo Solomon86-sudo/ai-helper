@@ -66,26 +66,54 @@ export default function AINormsModule() {
       });
       apiMessages.push({ role: 'user', content: userMsg.text });
 
-      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          model: 'llama-3.1-70b-versatile', // Обновленная актуальная модель
-          messages: apiMessages,
-          temperature: 0.2, // Меньше креативности, больше точности для нормативов
-        })
-      });
+      const modelsToTry = [
+        'llama-3.3-70b-versatile', 
+        'llama-3.1-8b-instant', 
+        'mixtral-8x7b-32768'
+      ];
+      
+      let data = null;
+      let lastError = null;
 
-      if (!response.ok) {
-        const err = await response.json();
-        throw new Error(err.error?.message || 'Ошибка API');
+      for (const modelName of modelsToTry) {
+        try {
+          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              model: modelName,
+              messages: apiMessages,
+              temperature: 0.2,
+            })
+          });
+
+          if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.error?.message || 'Ошибка API');
+          }
+
+          data = await response.json();
+          break; // Успех! Выходим из цикла
+        } catch (error) {
+          lastError = error;
+          // Если модель отключена, продолжаем цикл и пробуем следующую
+          if (error.message.includes('decommissioned') || error.message.includes('does not exist')) {
+            console.warn(`Модель ${modelName} недоступна, пробуем следующую...`);
+            continue;
+          } else {
+            // Если ошибка в ключе или другая — прерываем сразу
+            break;
+          }
+        }
       }
 
-      const data = await response.json();
-      
+      if (!data) {
+        throw lastError || new Error('Все доступные модели отключены');
+      }
+
       setMessages((prev) => [
         ...prev,
         {
@@ -100,7 +128,7 @@ export default function AINormsModule() {
         {
           id: Date.now() + 1,
           sender: 'ai',
-          text: `❌ Ошибка запроса: ${error.message}. Проверьте правильность API-ключа.`
+          text: `❌ Ошибка запроса: ${error.message}.`
         }
       ]);
     } finally {
