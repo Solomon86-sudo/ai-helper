@@ -9,11 +9,15 @@ import ScheduleModule from './ScheduleModule';
 import AgentNorms from '../AgentNorms';
 import AgentRoadmap from '../AgentRoadmap';
 import AgentManual from '../AgentManual';
+import SummaryModule from './SummaryModule';
+import BudgetModule from './BudgetModule';
+import AINormsModule from './AINormsModule';
 
 const ERPDashboard = ({ project }) => {
-  const [activeModule, setActiveModule] = useState('predev');
+  const [activeModule, setActiveModule] = useState('summary'); // Делаем сводку вкладкой по умолчанию
 
   const modules = [
+    { id: 'summary', name: 'Сводка', icon: <LayoutDashboard size={18} /> },
     { id: 'predev', name: 'Предпроект', icon: <LayoutDashboard size={18} /> },
     { id: 'design', name: 'Проектирование', icon: <PenTool size={18} /> },
     { id: 'construction', name: 'Строительство', icon: <HardHat size={18} /> },
@@ -55,13 +59,14 @@ const ERPDashboard = ({ project }) => {
       </div>
 
       <div style={{ flex: 1, backgroundColor: 'var(--bg-card)', borderRadius: '8px', padding: '24px', border: '1px solid var(--border-color)', overflowY: 'auto', position: 'relative' }}>
+        <div style={{ display: activeModule === 'summary' ? 'block' : 'none', height: '100%' }}><SummaryModule /></div>
         <div style={{ display: activeModule === 'predev' ? 'block' : 'none', height: '100%' }}><PredevModule /></div>
         <div style={{ display: activeModule === 'design' ? 'block' : 'none', height: '100%' }}><DesignModule /></div>
         <div style={{ display: activeModule === 'construction' ? 'block' : 'none', height: '100%' }}><ConstructionModule /></div>
         <div style={{ display: activeModule === 'bim3d' ? 'block' : 'none', height: '100%' }}><IFCViewer /></div>
-        <div style={{ display: activeModule === 'budget' ? 'block' : 'none', height: '100%' }}><div><h3>Модуль: Бюджет</h3><p>Статьи бюджета, банковские лимиты, факты оплат и пересчет EAC.</p></div></div>
+        <div style={{ display: activeModule === 'budget' ? 'block' : 'none', height: '100%' }}><BudgetModule /></div>
         <div style={{ display: activeModule === 'schedule' ? 'block' : 'none', height: '100%' }}><ScheduleModule /></div>
-        <div style={{ display: activeModule === 'norms' ? 'block' : 'none', height: '100%' }}><AgentNorms /></div>
+        <div style={{ display: activeModule === 'norms' ? 'block' : 'none', height: '100%' }}><AINormsModule /></div>
         <div style={{ display: activeModule === 'roadmap' ? 'block' : 'none', height: '100%' }}><AgentRoadmap /></div>
         <div style={{ display: activeModule === 'manual' ? 'block' : 'none', height: '100%' }}><AgentManual /></div>
         <div style={{ display: activeModule === 'admin' ? 'block' : 'none', height: '100%' }}><AdminModule /></div>
