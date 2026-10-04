@@ -1,8 +1,12 @@
 import React, { useState } from 'react';
 import ERPDashboard from './components/erp/ERPDashboard';
-import { Building2, Plus, Calendar, MapPin, ArrowLeft } from 'lucide-react';
+import { Building2, Plus, Calendar, MapPin, ArrowLeft, LogOut } from 'lucide-react';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import Login from './components/auth/Login';
 
-function App() {
+function AppContent() {
+  const { user, logout } = useAuth();
+
   const [activeProject, setActiveProject] = useState(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   
@@ -12,6 +16,11 @@ function App() {
   ]);
 
   const [newProject, setNewProject] = useState({ name: '', address: '', client: '' });
+
+  // Если пользователь не авторизован - показываем экран входа
+  if (!user) {
+    return <Login />;
+  }
 
   const handleCreateProject = (e) => {
     e.preventDefault();
@@ -47,6 +56,12 @@ function App() {
           <span style={{ padding: '4px 12px', backgroundColor: 'rgba(59, 130, 246, 0.1)', color: 'var(--accent-blue)', borderRadius: '12px', fontSize: '0.875rem' }}>
             {activeProject.status}
           </span>
+          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <span style={{ color: 'var(--text-muted)' }}>{user.name}</span>
+            <button onClick={logout} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px', backgroundColor: 'transparent', border: '1px solid var(--border-color)', borderRadius: '6px', color: 'var(--text-main)', cursor: 'pointer' }}>
+              <LogOut size={16} /> Выход
+            </button>
+          </div>
         </div>
         
         <div style={{ height: 'calc(100vh - 65px)', padding: '24px', backgroundColor: 'var(--bg-dark)', overflowY: 'auto' }}>
@@ -62,15 +77,20 @@ function App() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '32px' }}>
           <div>
             <h1 style={{ fontSize: '2rem', margin: '0 0 8px 0', color: 'var(--text-main)' }}>EA Development — Управление проектами</h1>
-            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Единая платформа девелоперского цикла</p>
+            <p style={{ color: 'var(--text-muted)', margin: 0 }}>Единая платформа девелоперского цикла ({user.name})</p>
           </div>
-          <button 
-            onClick={() => setShowCreateForm(!showCreateForm)}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'var(--accent-blue)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}
-          >
-            <Plus size={20} />
-            Создать проект
-          </button>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            <button 
+              onClick={() => setShowCreateForm(!showCreateForm)}
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', backgroundColor: 'var(--accent-blue)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '500' }}
+            >
+              <Plus size={20} />
+              Создать проект
+            </button>
+            <button onClick={logout} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '10px', backgroundColor: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '8px', color: 'var(--text-main)', cursor: 'pointer' }} title="Выход">
+              <LogOut size={20} />
+            </button>
+          </div>
         </div>
 
         {showCreateForm && (
@@ -170,6 +190,14 @@ function App() {
         </div>
       </div>
     </div>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   );
 }
 
