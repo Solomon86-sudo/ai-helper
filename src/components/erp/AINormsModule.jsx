@@ -66,53 +66,47 @@ export default function AINormsModule() {
       });
       apiMessages.push({ role: 'user', content: userMsg.text });
 
-      const modelsToTry = [
-        'llama-3.3-70b-versatile', 
-        'llama-3.1-8b-instant', 
-        'mixtral-8x7b-32768'
-      ];
+      // 1. Сначала запрашиваем список ВСЕХ актуальных моделей у Groq, чтобы не гадать
+      const modelsRes = await fetch('https://api.groq.com/openai/v1/models', {
+        headers: { 'Authorization': `Bearer ${apiKey}` }
+      });
       
-      let data = null;
-      let lastError = null;
-
-      for (const modelName of modelsToTry) {
-        try {
-          const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${apiKey}`,
-              'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-              model: modelName,
-              messages: apiMessages,
-              temperature: 0.2,
-            })
-          });
-
-          if (!response.ok) {
-            const err = await response.json();
-            throw new Error(err.error?.message || 'Ошибка API');
-          }
-
-          data = await response.json();
-          break; // Успех! Выходим из цикла
-        } catch (error) {
-          lastError = error;
-          // Если модель отключена, продолжаем цикл и пробуем следующую
-          if (error.message.includes('decommissioned') || error.message.includes('does not exist')) {
-            console.warn(`Модель ${modelName} недоступна, пробуем следующую...`);
-            continue;
-          } else {
-            // Если ошибка в ключе или другая — прерываем сразу
-            break;
-          }
-        }
+      if (!modelsRes.ok) {
+        throw new Error('Ошибка ключа или нет доступа к списку моделей');
+      }
+      
+      const modelsData = await modelsRes.json();
+      const availableModels = modelsData.data.map(m => m.id);
+      
+      // Ищем самую умную модель из доступных (предпочтение Llama 70b)
+      const selectedModel = availableModels.find(m => m.includes('70b')) 
+                         || availableModels.find(m => m.includes('llama')) 
+                         || availableModels[0];
+                         
+      if (!selectedModel) {
+        throw new Error('Groq не вернул доступных моделей для вашего ключа');
       }
 
-      if (!data) {
-        throw lastError || new Error('Все доступные модели отключены');
+      // 2. Отправляем запрос в найденную актуальную модель
+      const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          model: selectedModel,
+          messages: apiMessages,
+          temperature: 0.2,
+        })
+      });
+
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.error?.message || 'Ошибка генерации ответа');
       }
+
+      const data = await response.json();
 
       setMessages((prev) => [
         ...prev,
