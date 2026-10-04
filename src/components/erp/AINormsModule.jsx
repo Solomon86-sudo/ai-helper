@@ -78,13 +78,21 @@ export default function AINormsModule() {
       const modelsData = await modelsRes.json();
       const availableModels = modelsData.data.map(m => m.id);
       
-      // Ищем самую умную модель из доступных (предпочтение Llama 70b)
-      const selectedModel = availableModels.find(m => m.includes('70b')) 
-                         || availableModels.find(m => m.includes('llama')) 
-                         || availableModels[0];
+      // Отфильтровываем технические модели (модераторы, транскрибаторы)
+      const chatModels = availableModels.filter(m => 
+        !m.includes('guard') && 
+        !m.includes('whisper') && 
+        !m.includes('audio')
+      );
+      
+      // Ищем самую умную модель из доступных чат-моделей
+      const selectedModel = chatModels.find(m => m.includes('70b')) 
+                         || chatModels.find(m => m.includes('mixtral')) 
+                         || chatModels.find(m => m.includes('llama')) 
+                         || chatModels[0];
                          
       if (!selectedModel) {
-        throw new Error('Groq не вернул доступных моделей для вашего ключа');
+        throw new Error('Groq не вернул доступных чат-моделей для вашего ключа');
       }
 
       // 2. Отправляем запрос в найденную актуальную модель
