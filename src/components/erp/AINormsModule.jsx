@@ -73,7 +73,7 @@ export default function AINormsModule() {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          model: 'llama3-70b-8192', // Используем быструю и умную модель
+          model: 'llama-3.1-70b-versatile', // Обновленная актуальная модель
           messages: apiMessages,
           temperature: 0.2, // Меньше креативности, больше точности для нормативов
         })
