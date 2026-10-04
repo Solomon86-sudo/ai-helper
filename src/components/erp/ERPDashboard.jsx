@@ -31,8 +31,19 @@ const ERPDashboard = ({ project }) => {
   ];
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', gap: '20px' }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', overflow: 'hidden' }}>
+      {/* Скроллируемая в один ряд панель вкладок с уменьшенными отступами */}
+      <div style={{ 
+        display: 'flex', 
+        flexWrap: 'nowrap', 
+        overflowX: 'auto', 
+        gap: '6px', 
+        borderBottom: '1px solid var(--border-color)', 
+        padding: '12px 24px',
+        backgroundColor: 'var(--bg-main)',
+        msOverflowStyle: 'none', /* IE and Edge */
+        scrollbarWidth: 'none' /* Firefox */
+      }}>
         {modules.map(mod => (
           <button
             key={mod.id}
@@ -40,8 +51,8 @@ const ERPDashboard = ({ project }) => {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '8px',
-              padding: '8px 16px',
+              gap: '6px',
+              padding: '6px 12px',
               backgroundColor: activeModule === mod.id ? 'var(--accent-blue)' : 'var(--bg-card)',
               color: activeModule === mod.id ? 'white' : 'var(--text-main)',
               border: '1px solid',
@@ -49,16 +60,19 @@ const ERPDashboard = ({ project }) => {
               borderRadius: '6px',
               cursor: 'pointer',
               fontWeight: activeModule === mod.id ? '600' : '400',
-              transition: 'all 0.2s'
+              fontSize: '13px',
+              transition: 'all 0.2s',
+              whiteSpace: 'nowrap',
+              flexShrink: 0
             }}
           >
-            {mod.icon}
+            {React.cloneElement(mod.icon, { size: 16 })}
             {mod.name}
           </button>
         ))}
       </div>
 
-      <div style={{ flex: 1, backgroundColor: 'var(--bg-card)', borderRadius: '8px', padding: '24px', border: '1px solid var(--border-color)', overflowY: 'auto', position: 'relative' }}>
+      <div style={{ flex: 1, backgroundColor: 'var(--bg-card)', overflowY: 'auto', position: 'relative' }}>
         <div style={{ display: activeModule === 'summary' ? 'block' : 'none', height: '100%' }}><SummaryModule /></div>
         <div style={{ display: activeModule === 'predev' ? 'block' : 'none', height: '100%' }}><PredevModule /></div>
         <div style={{ display: activeModule === 'design' ? 'block' : 'none', height: '100%' }}><DesignModule /></div>

@@ -64,7 +64,7 @@ function AppContent() {
           </div>
         </div>
         
-        <div style={{ height: 'calc(100vh - 65px)', padding: '24px', backgroundColor: 'var(--bg-dark)', overflowY: 'auto' }}>
+        <div style={{ height: 'calc(100vh - 65px)', backgroundColor: 'var(--bg-dark)', display: 'flex', flexDirection: 'column' }}>
           <ERPDashboard project={activeProject} />
         </div>
       </div>
