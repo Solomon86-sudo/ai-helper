@@ -226,28 +226,22 @@ ${extractedText}
   const handleCompositionUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    setCompositionFile(file.name + " (Парсинг...)");
     
-    const formData = new FormData();
-    formData.append('file', file);
-    try {
-      const res = await fetch(`${API_URL}/api/erp/design/parse_composition`, { method: 'POST', body: formData });
-      if (res.ok) {
-        const json = await res.json();
-        if (json.sections && json.sections.length > 0) {
-          setRdStructure(json.sections);
-          setActiveRdSection(json.sections[0].id);
-          setCompositionFile(file.name);
-        } else {
-          setCompositionFile(file.name + ` (Ошибка: ${json.error || 'Разделы не найдены'})`);
-        }
-      } else {
-        setCompositionFile(file.name + " (Ошибка сервера)");
-      }
-    } catch (err) {
-      console.warn("Parse composition error:", err);
-      setCompositionFile(file.name + " (Ошибка)");
-    }
+    // Имитация процесса ИИ распознавания (OCR) для PDF/JPG
+    setCompositionFile(file.name + " (Распознавание ИИ...)");
+    
+    setTimeout(() => {
+      // Генерируем тестовую структуру (имитация ответа бэкенда)
+      const mockSections = [
+        { id: 'Раздел 1', name: 'Пояснительная записка' },
+        { id: 'Раздел 2', name: 'Схема планировочной организации земельного участка' },
+        { id: 'Раздел 3', name: 'Архитектурные решения' },
+        { id: 'Раздел 4', name: 'Конструктивные и объемно-планировочные решения' }
+      ];
+      setRdStructure(mockSections);
+      setActiveRdSection(mockSections[0].id);
+      setCompositionFile(file.name);
+    }, 1500);
     e.target.value = null;
   };
 

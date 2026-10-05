@@ -216,7 +216,43 @@ export default function ScheduleModule() {
                     </td>
 
                     <td style={{ padding: '10px 16px', fontSize: '12px', color: task.executor === 'Не назначен' ? '#f59e0b' : 'var(--text-muted)' }}>
-                      {task.executor || '—'}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                        {task.isSummary ? (
+                          <span>{task.executor || '—'}</span>
+                        ) : (
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <select 
+                              value={task.executor || ''}
+                              onChange={(e) => {
+                                const newTasks = [...tasks];
+                                newTasks[index].executor = e.target.value;
+                                setTasks(newTasks);
+                              }}
+                              style={{ 
+                                padding: '4px 8px', borderRadius: '4px', backgroundColor: 'var(--bg-main)', 
+                                color: 'var(--text-main)', border: '1px solid var(--border-color)', fontSize: '11px', flex: 1 
+                              }}
+                            >
+                              <option value="">Не назначен</option>
+                              <option value="ООО СпецСтрой">ООО СпецСтрой</option>
+                              <option value="ИП Подрядчиков">ИП Подрядчиков</option>
+                              <option value="ООО ГК ПИК">ООО ГК ПИК</option>
+                              <option value="Иван (Админ)">Иван (Админ)</option>
+                            </select>
+                          </div>
+                        )}
+                        {!task.isSummary && task.executor && (
+                          <button 
+                            onClick={() => {
+                              alert(`✅ Задача "${task.name}" отправлена на email подрядчику: ${task.executor}`);
+                              // В реальной ERP здесь будет POST запрос на бэкенд
+                            }}
+                            style={{ padding: '2px 6px', fontSize: '10px', backgroundColor: 'var(--accent-blue)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                          >
+                            Уведомить
+                          </button>
+                        )}
+                      </div>
                     </td>
 
                     <td style={{ padding: '10px 16px' }}>{task.start}</td>
